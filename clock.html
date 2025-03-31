@@ -32,8 +32,8 @@
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            z-index: 10; /* 确保按钮在时间上方 */
-            opacity: 0.7; /* 半透明 */
+            z-index: 10;
+            opacity: 0.7;
         }
         button {
             font-size: 25px;
@@ -55,8 +55,8 @@
     </div>
 
     <script>
-        var currentFontSize = 100; // 初始字体大小
-        var hideTimeout = null; // 计时器变量
+        var currentFontSize = 100;
+        var hideTimeout = null;
 
         function updateClock() {
             var now = new Date();
@@ -71,36 +71,5 @@
             var clock = document.getElementById("clock");
             var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            // 最大化字体，占屏幕高度的 90%
-            currentFontSize = Math.min(screenWidth * 0.3, screenHeight * 0.9);
-            clock.style.fontSize = currentFontSize + "px";
-        }
-
-        function changeFontSize(delta) {
-            var clock = document.getElementById("clock");
-            var controls = document.getElementById("controls");
-            currentFontSize += delta;
-            if (currentFontSize < 20) currentFontSize = 20;
-            if (currentFontSize > 854) currentFontSize = 854; // Lumia 635 最大高度 854px
-            clock.style.fontSize = currentFontSize + "px";
-
-            // 清除之前的计时器
-            if (hideTimeout) {
-                clearTimeout(hideTimeout);
-            }
-            // 设置3秒后隐藏按钮
-            hideTimeout = setTimeout(function() {
-                controls.style.display = "none";
-            }, 3000);
-        }
-
-        // 每分钟更新时间
-        setInterval(updateClock, 60000);
-        // 页面加载时初始化
-        updateClock();
-        adjustFontSize();
-        // 窗口大小改变时调整
-        window.onresize = adjustFontSize;
-    </script>
-</body>
-</html>
+            // 假设地址栏和导航栏占用了约 100px，调整可用高度
+            var adjustedHeight = screenHeight - 100; /
