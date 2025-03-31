@@ -56,6 +56,7 @@
 
     <script>
         var currentFontSize = 100; // 初始字体大小
+        var hideTimeout = null; // 计时器变量
 
         function updateClock() {
             var now = new Date();
@@ -82,8 +83,15 @@
             if (currentFontSize < 20) currentFontSize = 20;
             if (currentFontSize > 854) currentFontSize = 854; // Lumia 635 最大高度 854px
             clock.style.fontSize = currentFontSize + "px";
-            // 点击后隐藏按钮
-            controls.style.display = "none";
+
+            // 清除之前的计时器
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            // 设置3秒后隐藏按钮
+            hideTimeout = setTimeout(function() {
+                controls.style.display = "none";
+            }, 3000);
         }
 
         // 每分钟更新时间
