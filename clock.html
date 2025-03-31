@@ -15,8 +15,8 @@
         }
         #clock {
             color: #ffffff;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
+            font-family: 'Impact', 'Arial Black', sans-serif; /* 使用更粗、更宽的字体 */
+            font-weight: 900; /* 最大粗体 */
             text-align: center;
             position: absolute;
             top: 50%;
@@ -25,6 +25,7 @@
             white-space: nowrap;
             width: 100%;
             font-size: 100px; /* 初始值，动态调整 */
+            letter-spacing: -5px; /* 缩小字符间距，增加视觉宽度 */
         }
         #controls {
             position: absolute;
@@ -71,14 +72,12 @@
             var clock = document.getElementById("clock");
             var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            // 假设地址栏和导航栏占用了约 100px，调整可用高度
-            var adjustedHeight = screenHeight - 100; // 粗略估计
-            currentFontSize = Math.min(screenWidth * 0.35, adjustedHeight * 0.95);
+            // 横屏模式下，screenWidth ≈ 854px, screenHeight ≈ 480px
+            // 假设地址栏和导航栏占用约 100px 高度
+            var adjustedHeight = screenHeight - 100;
+            // 字体大小取调整后高度的 95%，但不超过宽度限制
+            currentFontSize = Math.min(screenWidth * 0.2, adjustedHeight * 0.95);
             clock.style.fontSize = currentFontSize + "px";
-            // 尝试滚动以隐藏地址栏
-            setTimeout(function() {
-                window.scrollTo(0, 1);
-            }, 100);
         }
 
         function changeFontSize(delta) {
@@ -86,7 +85,7 @@
             var controls = document.getElementById("controls");
             currentFontSize += delta;
             if (currentFontSize < 20) currentFontSize = 20;
-            if (currentFontSize > 854) currentFontSize = 854;
+            if (currentFontSize > 480) currentFontSize = 480; // 横屏最大高度 480px
             clock.style.fontSize = currentFontSize + "px";
 
             if (hideTimeout) {
