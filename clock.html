@@ -16,14 +16,15 @@
         #clock {
             color: #ffffff;
             font-family: Arial, sans-serif;
-            font-size: 80px; /* 使用固定像素值替代 vw */
             font-weight: bold;
             text-align: center;
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%); /* 居中显示 */
+            transform: translate(-50%, -50%);
             white-space: nowrap;
+            width: 100%;
+            font-size: 100px; /* 默认值，稍后由 JS 动态调整 */
         }
     </style>
 </head>
@@ -35,16 +36,27 @@
             var now = new Date();
             var hours = now.getHours();
             var minutes = now.getMinutes();
-            // 确保两位数显示
             hours = (hours < 10 ? "0" : "") + hours;
             minutes = (minutes < 10 ? "0" : "") + minutes;
             document.getElementById("clock").innerHTML = hours + ":" + minutes;
         }
 
-        // 每分钟更新一次
+        function adjustFontSize() {
+            var clock = document.getElementById("clock");
+            var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            // 根据屏幕宽度动态调整字体大小，限制在屏幕高度的 80% 以避免溢出
+            var fontSize = Math.min(screenWidth * 0.25, screenHeight * 0.8);
+            clock.style.fontSize = fontSize + "px";
+        }
+
+        // 每分钟更新时间
         setInterval(updateClock, 60000);
-        // 页面加载时立即显示
+        // 页面加载时立即显示时间并调整字体
         updateClock();
+        adjustFontSize();
+        // 窗口大小改变时重新调整字体
+        window.onresize = adjustFontSize;
     </script>
 </body>
 </html>
