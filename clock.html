@@ -19,27 +19,30 @@
             font-weight: bold;
             text-align: center;
             position: absolute;
-            top: 40%; /* 稍微上移，为按钮留空间 */
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             white-space: nowrap;
             width: 100%;
-            font-size: 100px; /* 初始值 */
+            font-size: 100px; /* 初始值，稍后动态调整 */
         }
         #controls {
-            position: absolute;
-            bottom: 20px;
+            position: fixed;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
+            z-index: 10; /* 确保按钮在时间上方 */
+            opacity: 0.7; /* 半透明，减少视觉干扰 */
         }
         button {
-            font-size: 30px;
-            padding: 10px 20px;
-            margin: 0 10px;
+            font-size: 25px;
+            padding: 5px 15px;
+            margin: 0 5px;
             background-color: #333;
             color: #fff;
             border: none;
+            border-radius: 5px;
             cursor: pointer;
         }
     </style>
@@ -49,6 +52,7 @@
     <div id="controls">
         <button onclick="changeFontSize(-20)">-</button>
         <button onclick="changeFontSize(20)">+</button>
+        <button onclick="goFullscreen()">全屏</button>
     </div>
 
     <script>
@@ -67,17 +71,27 @@
             var clock = document.getElementById("clock");
             var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            // 初始自适应大小，限制在屏幕高度的 80%
-            currentFontSize = Math.min(screenWidth * 0.25, screenHeight * 0.8);
+            // 最大化字体，占屏幕宽度的 30% 或高度的 90%
+            currentFontSize = Math.min(screenWidth * 0.3, screenHeight * 0.9);
             clock.style.fontSize = currentFontSize + "px";
         }
 
         function changeFontSize(delta) {
             currentFontSize += delta;
-            // 限制最小值和最大值，避免过小或溢出
             if (currentFontSize < 20) currentFontSize = 20;
-            if (currentFontSize > 500) currentFontSize = 500; // Lumia 635 屏幕较小，500px 应足够
+            if (currentFontSize > 854) currentFontSize = 854; // Lumia 635 最大高度 854px
             document.getElementById("clock").style.fontSize = currentFontSize + "px";
+        }
+
+        function goFullscreen() {
+            var clock = document.getElementById("clock");
+            var controls = document.getElementById("controls");
+            // 隐藏控制按钮
+            controls.style.display = "none";
+            // 最大化时间显示
+            clock.style.fontSize = (window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight) * 0.9 + "px";
+            // 尝试滚动到顶部以隐藏地址栏
+            window.scrollTo(0, 1);
         }
 
         // 每分钟更新时间
@@ -85,7 +99,7 @@
         // 页面加载时初始化
         updateClock();
         adjustFontSize();
-        // 窗口大小改变时重新调整
+        // 窗口大小改变时调整
         window.onresize = adjustFontSize;
     </script>
 </body>
