@@ -2,13 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>手机全屏时钟</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            height: 100vh;
+            height: 100%;
+            width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,12 +17,13 @@
             overflow: hidden;
         }
         #clock {
-            color: #fff;
-            font-family: Arial, sans-serif;
-            font-size: 20vw; /* 使用视口宽度单位，自适应屏幕大小 */
+            color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 25vw; /* 调整为更大的字体以确保显示 */
             font-weight: bold;
             text-align: center;
             line-height: 1;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -33,12 +35,11 @@
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('clock').textContent = `${hours}:${minutes}`;
         }
 
-        // 每秒更新时间
-        setInterval(updateClock, 1000);
+        // 每分钟更新时间（无需秒数更新）
+        setInterval(updateClock, 60000);
         // 页面加载时立即显示时间
         updateClock();
     </script>
