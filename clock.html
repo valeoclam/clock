@@ -10,19 +10,19 @@
             padding: 0;
             height: 100%;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             background-color: #000;
             overflow: hidden;
         }
         #clock {
             color: #ffffff;
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 25vw; /* 调整为更大的字体以确保显示 */
+            font-family: Arial, sans-serif;
+            font-size: 80px; /* 使用固定像素值替代 vw */
             font-weight: bold;
             text-align: center;
-            line-height: 1;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* 居中显示 */
             white-space: nowrap;
         }
     </style>
@@ -32,15 +32,18 @@
 
     <script>
         function updateClock() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            // 确保两位数显示
+            hours = (hours < 10 ? "0" : "") + hours;
+            minutes = (minutes < 10 ? "0" : "") + minutes;
+            document.getElementById("clock").innerHTML = hours + ":" + minutes;
         }
 
-        // 每分钟更新时间（无需秒数更新）
+        // 每分钟更新一次
         setInterval(updateClock, 60000);
-        // 页面加载时立即显示时间
+        // 页面加载时立即显示
         updateClock();
     </script>
 </body>
