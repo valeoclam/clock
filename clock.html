@@ -29,7 +29,7 @@
         }
         #controls {
             position: absolute;
-            top: 10px; /* 放在屏幕顶部 */
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
@@ -62,8 +62,8 @@
     <script>
         var currentFontSize = 100;
         var hideTimeout = null;
-        var positionX = 50; // 初始水平位置（百分比）
-        var positionY = 50; // 初始垂直位置（百分比）
+        var positionX = 50;
+        var positionY = 50;
 
         function updateClock() {
             var now = new Date();
@@ -78,8 +78,7 @@
             var clock = document.getElementById("clock");
             var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            // 横屏模式：screenWidth ≈ 854px, screenHeight ≈ 480px
-            var adjustedHeight = screenHeight - 100; // 减去地址栏和导航栏
+            var adjustedHeight = screenHeight - 100;
             currentFontSize = Math.min(screenWidth * 0.2, adjustedHeight * 0.95);
             clock.style.fontSize = currentFontSize + "px";
             updatePosition();
@@ -89,7 +88,7 @@
             var clock = document.getElementById("clock");
             currentFontSize += delta;
             if (currentFontSize < 20) currentFontSize = 20;
-            if (currentFontSize > 480) currentFontSize = 480; // 横屏最大高度
+            if (currentFontSize > 480) currentFontSize = 480;
             clock.style.fontSize = currentFontSize + "px";
             startHideTimer();
         }
@@ -100,7 +99,6 @@
             if (direction === 'left') positionX -= 5;
             if (direction === 'right') positionX += 5;
 
-            // 限制位置范围，避免移出屏幕
             if (positionX < 0) positionX = 0;
             if (positionX > 100) positionX = 100;
             if (positionY < 0) positionY = 0;
@@ -132,8 +130,16 @@
             startHideTimer();
         }
 
+        // 模拟用户活动以阻止锁屏
+        function preventScreenLock() {
+            // 每 10 秒触发一次微小的滚动事件
+            window.scrollTo(0, window.scrollY === 0 ? 1 : 0);
+        }
+
         // 每分钟更新时间
         setInterval(updateClock, 60000);
+        // 每 10 秒模拟用户活动
+        setInterval(preventScreenLock, 10000);
         // 页面加载时初始化
         updateClock();
         adjustFontSize();
