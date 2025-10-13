@@ -1,48 +1,924 @@
 <!DOCTYPE html>
-<html style="height:100%; margin:0; padding:0">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-		<title>Clock</title>
-		<style type="text/css">
-			/* Customizable font and colors */
-			html {
-				background: #000000;
-				font-family: sans-serif;
-				font-weight: bold;
-				color: #FFFFFF;
-			}
-		</style>
-	</head>
-	
-	<body style="display:flex; height:100%; margin:0; padding:0; justify-content:center; align-items:center">
-		<span id="clocktext" style="font-kerning:none"></span>
-		
-		<script>
-			"use strict";
-			
-			let textElem = document.getElementById("clocktext");
-			const targetWidth = 0.9;  // Proportion of full screen width
-			let curFontSize = 20;  // Do not change
-			
-			function updateClock() {
-				const d = new Date();
-				let s = "";
-				s += (10 > d.getHours  () ? "0" : "") + d.getHours  () + ":";
-				s += (10 > d.getMinutes() ? "0" : "") + d.getMinutes();
-				textElem.textContent = s;
-				setTimeout(updateClock, 60000 - d.getTime() % 60000 + 100);
-			}
-			
-			function updateTextSize() {
-				for (let i = 0; 3 > i; i++) {  // Iterate for better better convergence
-					curFontSize *= targetWidth / (textElem.offsetWidth / textElem.parentNode.offsetWidth);
-					textElem.style.fontSize = curFontSize + "pt";
-				}
-			}
-			
-			updateClock();
-			updateTextSize();
-			window.addEventListener("resize", updateTextSize);
-		</script>
-	</body>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词学习工具 - 进度保存版</title>
+    <style>
+        /* --- 基础样式 --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px; /* 标题和版本号的间距 */
+        }
+        #version-info {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: normal;
+        }
+        /* --- 会话管理区域样式 --- */
+        #session-management {
+            margin-bottom: 25px; 
+            padding: 15px; 
+            border: 1px dashed #ccc; 
+            border-radius: 8px;
+            text-align: left;
+            background-color: #f0f8ff;
+        }
+        #session-management h3 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #2a6496;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        #session-selector {
+            padding: 8px; 
+            width: calc(100% - 110px); 
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #btn-load-session {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: normal;
+            vertical-align: top;
+        }
+        /* --- 单词显示区域样式 --- */
+        .word-display {
+            min-height: 150px;
+            margin-bottom: 25px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+        #current-word-wrapper {
+            margin-bottom: 10px;
+        }
+        #current-word {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2a6496;
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        #word-pos {
+            font-size: 18px;
+            color: #f0ad4e;
+            font-style: italic;
+            font-weight: bold;
+        }
+        #word-definition {
+            font-size: 16px;
+            color: #555;
+            margin-top: 15px;
+            cursor: pointer; 
+            border-top: 1px dashed #ccc; 
+            padding-top: 10px;
+            line-height: 1.6;
+        }
+
+        /* --- 单词揭示控制区样式 --- */
+        #reveal-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        #btn-toggle-word, #btn-reveal-letter {
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: normal;
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+            font-weight: 600;
+        }
+        .btn-correct {
+            background-color: #5cb85c;
+            color: white;
+        }
+        .btn-wrong {
+            background-color: #d9534f;
+            color: white;
+        }
+        .btn-control {
+            background-color: #5bc0de;
+            color: white;
+        }
+        #btn-generate-review {
+            background-color: #ff9800;
+        }
+        .btn-reset {
+            background-color: #6c757d; 
+            color: white;
+            margin-left: 10px;
+        }
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 14px;
+            color: #555;
+        }
+        /* --- 错误次数可点击样式 --- */
+        #error-count {
+            color: #d9534f; 
+            font-weight: bold;
+            cursor: pointer; /* 提示可点击 */
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+
+        /* --- 模态框 (Modal) 样式 --- */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.5); /* 半透明黑色背景 */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 居中显示 */
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-height: 70vh; /* 限制高度 */
+            overflow-y: auto; /* 允许滚动 */
+            text-align: left;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .error-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        .error-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .error-list li:hover {
+            background-color: #f9f9f9;
+        }
+        .error-list li:last-child {
+            border-bottom: none;
+        }
+        .error-word {
+            font-weight: bold;
+            color: #333;
+        }
+        .error-count-num {
+            color: #d9534f;
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        单词学习工具
+        <span id="version-info"></span> </h1>
+
+    <div id="session-management">
+        <h3>学习记录管理</h3>
+        <select id="session-selector" disabled>
+            <option value="">-- 没有可加载的记录 --</option>
+        </select>
+        <button id="btn-load-session" class="btn-control" disabled>加载选中记录</button>
+    </div>
+    
+    <div id="file-upload-area">
+        <h2>请导入您的单词表 (.xlsx, .xls, .csv)</h2>
+        <p style="color:#d9534f;">请确保文件格式为：**序号, 单词, 词性, 单词解释** (共4列)。</p>
+        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" style="margin-bottom: 20px;">
+    </div>
+
+    <div id="learning-area" style="display: none;">
+        <div class="word-display">
+            <div id="current-word-wrapper">
+                <span id="current-word" onclick="speakText('current-word', 'word')">单词</span>
+                <span id="word-pos">词性</span>
+            </div>
+            <p style="font-weight: bold; color: #333; margin: 5px 0 0 0;">英文解释:</p>
+            <div id="word-definition" onclick="speakText('word-definition', 'definition')">点击这里朗读单词解释</div>
+        </div>
+
+        <div id="reveal-controls">
+            <button id="btn-toggle-word" class="btn-control">显示完整单词</button>
+            <button id="btn-reveal-letter" class="btn-control" disabled>揭示下一个字母 (0/N)</button>
+        </div>
+
+        <div class="controls">
+            <button id="btn-wrong" class="btn-wrong">记错 (未掌握)</button>
+            <button id="btn-correct" class="btn-correct">记住 (已掌握)</button>
+        </div>
+
+        <div class="controls">
+            <button id="btn-mode" class="btn-control">切换到：随机模式</button>
+            <button id="btn-next" class="btn-control">下一个单词</button>
+        </div>
+        
+        <div class="controls">
+            <button id="btn-generate-review" class="btn-control" style="background-color: #ff9800;">生成错词复习清单</button>
+            <button id="btn-clear" class="btn-reset">清空**当前**记录</button> 
+        </div>
+
+        <div class="stats">
+            <p>总单词数：<span id="total-count">0</span></p>
+            <p>已记住：<span id="mastered-count" style="color: #5cb85c; font-weight: bold;">0</span></p>
+            <p>未掌握/错词总次数：<span id="error-count" onclick="showErrorWords()">0</span></p>
+            <p>当前单词错误次数：<span id="current-error-stats">0</span></p>
+            <p>当前记录名：<span id="current-session-name">无</span></p>
+        </div>
+    </div>
+</div>
+
+<div id="errorModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>🔴 错误单词列表</h3>
+        <p>点击单词可跳转并开始学习。</p>
+        <ul id="errorListContent" class="error-list">
+            </ul>
+    </div>
+</div>
+
+<script>
+    // 1. 常量和初始化数据结构
+    const SESSIONS_STORAGE_KEY = 'wordLearningSessions';
+    // 固定的版本号信息 - 每次更新代码时，我会更新此时间
+    const FIXED_VERSION = '2025年10月12日 21:39:00 (PDT)'; 
+    
+    let allSessions = []; // 所有学习记录的数组
+    let currentSessionId = null; // 当前正在使用的记录ID
+
+    // 当前会话的临时数据
+    let wordList = [];
+    let currentIndex = -1;
+    let isRandomMode = false;
+    let availableWords = []; 
+    
+    // 新增状态：单词隐藏和揭示计数
+    let isWordMasked = true;
+    let revealedLettersCount = 0;
+
+
+    // 2. 元素获取
+    const fileInput = document.getElementById('file-input');
+    const fileUploadArea = document.getElementById('file-upload-area');
+    const learningArea = document.getElementById('learning-area');
+    const currentWordEl = document.getElementById('current-word');
+    const wordPosEl = document.getElementById('word-pos');
+    const wordDefinitionEl = document.getElementById('word-definition');
+    const totalCountEl = document.getElementById('total-count');
+    const masteredCountEl = document.getElementById('mastered-count');
+    const errorCountEl = document.getElementById('error-count');
+    const currentErrorStatsEl = document.getElementById('current-error-stats');
+    const btnMode = document.getElementById('btn-mode');
+    const btnNext = document.getElementById('btn-next');
+    const btnCorrect = document.getElementById('btn-correct');
+    const btnWrong = document.getElementById('btn-wrong');
+    const btnClear = document.getElementById('btn-clear'); 
+    const sessionSelector = document.getElementById('session-selector');
+    const btnLoadSession = document.getElementById('btn-load-session');
+    const btnGenerateReview = document.getElementById('btn-generate-review');
+    const currentSessionNameEl = document.getElementById('current-session-name');
+    
+    // 新增按钮
+    const btnToggleWord = document.getElementById('btn-toggle-word');
+    const btnRevealLetter = document.getElementById('btn-reveal-letter');
+    
+    const versionInfoEl = document.getElementById('version-info');
+    const errorModal = document.getElementById('errorModal');
+    const errorListContent = document.getElementById('errorListContent');
+
+
+    // --- 单词隐藏/揭示功能 ---
+
+    // 隐藏单词：保留第一个和最后一个字母，其余用星号代替，非字母字符（如空格、连字符）不变
+    function maskWord(word) {
+        if (!word) return '单词';
+        if (word.length <= 2) return word;
+
+        let masked = '';
+        const letters = word.split('');
+        
+        // 确保第一个和最后一个字母始终可见
+        const firstLetter = letters[0];
+        const lastLetter = letters[letters.length - 1];
+        
+        // 临时变量用于记录当前揭示的单词
+        let tempWord = word;
+
+        for (let i = 0; i < letters.length; i++) {
+            const char = letters[i];
+            
+            // 如果是字母，则进行遮蔽/揭示判断
+            if (/[a-zA-Z]/.test(char)) {
+                if (i === 0 || i === letters.length - 1) {
+                    masked += char; // 保留首尾字母
+                } else if (i < revealedLettersCount) {
+                    masked += char; // 揭示已计数的部分
+                } else {
+                    masked += '*'; // 遮蔽
+                }
+            } else {
+                masked += char; // 非字母字符（如空格、连字符）保持不变
+            }
+        }
+        
+        return masked;
+    }
+
+    // 更新单词显示
+    function updateWordDisplay() {
+        const currentWord = wordList[currentIndex];
+        if (!currentWord) return;
+
+        if (isWordMasked) {
+            currentWordEl.textContent = maskWord(currentWord.word);
+            btnToggleWord.textContent = '显示完整单词';
+            
+            // 更新揭示按钮状态
+            const totalMaskedLetters = currentWord.word.match(/[a-zA-Z]/g)?.length || 0;
+            const remainingToReveal = totalMaskedLetters - 2 - revealedLettersCount;
+            
+            if (revealedLettersCount >= totalMaskedLetters - 2) {
+                btnRevealLetter.textContent = `已全部揭示 (${totalMaskedLetters}/${totalMaskedLetters})`;
+                btnRevealLetter.disabled = true;
+            } else {
+                btnRevealLetter.textContent = `揭示下一个字母 (${revealedLettersCount + 1}/${totalMaskedLetters - 2})`;
+                btnRevealLetter.disabled = false;
+            }
+
+        } else {
+            currentWordEl.textContent = currentWord.word;
+            btnToggleWord.textContent = '隐藏单词 (测试拼写)';
+            btnRevealLetter.disabled = true;
+            btnRevealLetter.textContent = '无需揭示';
+        }
+    }
+
+    // 切换单词可见性
+    function toggleWordVisibility() {
+        isWordMasked = !isWordMasked;
+        // 如果切换到显示，重置揭示计数，但不修改 isWordMasked 的状态
+        if (!isWordMasked) {
+             revealedLettersCount = 0; 
+        }
+        updateWordDisplay();
+    }
+
+    // 揭示下一个字母
+    function revealNextLetter() {
+        const currentWord = wordList[currentIndex];
+        if (!currentWord || !isWordMasked) return;
+
+        const totalLetters = currentWord.word.match(/[a-zA-Z]/g)?.length || 0;
+        
+        // 只有当揭示计数小于总字母数-2时才增加（首尾字母已显示）
+        if (revealedLettersCount < totalLetters - 2) {
+            revealedLettersCount++;
+            updateWordDisplay();
+        }
+        
+        // 如果全部揭示完成，自动切换为完整显示状态
+        if (revealedLettersCount === totalLetters - 2) {
+             isWordMasked = false;
+             updateWordDisplay();
+        }
+    }
+
+
+    // --- 辅助功能：版本号 ---
+    function updateVersionInfo() {
+        versionInfoEl.textContent = `(版本: ${FIXED_VERSION})`;
+    }
+
+
+    // --- 进度保存/加载/清空函数 (多记录结构) ---
+
+    function saveAllSessions() {
+        try {
+            const dataToSave = {
+                allSessions: allSessions,
+                currentSessionId: currentSessionId
+            };
+            localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(dataToSave));
+        } catch (e) {
+            console.error("无法保存所有会话进度到 localStorage:", e);
+        }
+    }
+
+    function saveProgress() {
+        const currentSession = allSessions.find(s => s.id === currentSessionId);
+        if (currentSession) {
+            currentSession.wordList = wordList;
+            currentSession.currentIndex = currentIndex;
+            currentSession.isRandomMode = isRandomMode;
+            saveAllSessions();
+        }
+    }
+    
+    function loadAllSessions() {
+        const savedData = localStorage.getItem(SESSIONS_STORAGE_KEY);
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                allSessions = data.allSessions || [];
+                currentSessionId = data.currentSessionId || null;
+                
+                populateSessionSelector();
+                
+                if (allSessions.length > 0 && currentSessionId) {
+                    loadSession(currentSessionId);
+                    return true;
+                }
+            } catch (e) {
+                console.error("加载所有会话失败或数据已损坏，已清除本地存储。", e);
+                localStorage.removeItem(SESSIONS_STORAGE_KEY); 
+                allSessions = [];
+                currentSessionId = null;
+            }
+        }
+        fileUploadArea.style.display = 'block';
+        learningArea.style.display = 'none';
+        updateStats(); // 确保初始统计数据为 0
+        return false;
+    }
+
+    function loadSession(sessionId) {
+        const session = allSessions.find(s => s.id === sessionId);
+        if (!session) {
+            console.error("尝试加载的会话不存在:", sessionId);
+            return;
+        }
+
+        currentSessionId = sessionId;
+        wordList = session.wordList;
+        currentIndex = session.currentIndex;
+        isRandomMode = session.isRandomMode;
+        
+        availableWords = wordList.filter(w => !w.mastered);
+        
+        fileUploadArea.style.display = 'none';
+        learningArea.style.display = 'block';
+
+        btnMode.textContent = isRandomMode ? '切换到：顺序模式' : '切换到：随机模式';
+        
+        // 重置单词隐藏状态
+        isWordMasked = true;
+        revealedLettersCount = 0;
+
+        updateStats(); 
+        
+        if (currentIndex !== -1 && wordList[currentIndex]) {
+            const currentWord = wordList[currentIndex];
+            wordPosEl.textContent = currentWord.partOfSpeech;
+            wordDefinitionEl.textContent = currentWord.definition;
+            updateWordDisplay(); // 使用新的显示函数
+        } else {
+            displayNextWord(false); 
+        }
+
+        sessionSelector.value = sessionId;
+        console.log(`已加载会话: ${session.name}`);
+    }
+
+    function populateSessionSelector() {
+        sessionSelector.innerHTML = '';
+        if (allSessions.length === 0) {
+            sessionSelector.innerHTML = '<option value="">-- 没有可加载的记录 --</option>';
+            sessionSelector.disabled = true;
+            btnLoadSession.disabled = true;
+            return;
+        }
+
+        sessionSelector.disabled = false;
+        btnLoadSession.disabled = false;
+
+        allSessions.forEach(session => {
+            const option = document.createElement('option');
+            const masteredCount = session.wordList.filter(w => w.mastered).length;
+            const totalWords = session.wordList.length;
+            
+            option.value = session.id;
+            option.textContent = `${session.name} (${totalWords} 词 | 已记 ${masteredCount}) - ${new Date(session.timestamp).toLocaleString()}`;
+            
+            if (session.id === currentSessionId) {
+                option.selected = true;
+            }
+            sessionSelector.appendChild(option);
+        });
+    }
+
+    function clearCurrentSessionProgress() {
+        if (!currentSessionId) {
+            alert("当前没有活动的学习记录。");
+            return;
+        }
+        
+        if (confirm(`确定要清空当前记录 (${currentSessionNameEl.textContent}) 的所有进度和错词统计吗？此操作不可撤销。`)) {
+            const sessionIndex = allSessions.findIndex(s => s.id === currentSessionId);
+            if (sessionIndex !== -1) {
+                allSessions.splice(sessionIndex, 1);
+                
+                if (allSessions.length > 0) {
+                    loadSession(allSessions[0].id);
+                } else {
+                    currentSessionId = null;
+                    wordList = [];
+                    currentIndex = -1;
+                    isRandomMode = false;
+                    fileUploadArea.style.display = 'block';
+                    learningArea.style.display = 'none';
+                    updateStats();
+                }
+                
+                saveAllSessions();
+                populateSessionSelector();
+                alert("当前记录已清空。");
+            }
+        }
+    }
+    
+    function generateReviewList() {
+        if (wordList.length === 0) {
+            alert("当前记录没有单词，无法生成复习清单。");
+            return;
+        }
+
+        const unmasteredWords = wordList.filter(w => !w.mastered);
+        
+        if (unmasteredWords.length === 0) {
+            alert("太棒了！当前记录中所有单词都已掌握，无需复习！");
+            return;
+        }
+        
+        const timestamp = new Date().getTime();
+        const originalSessionName = allSessions.find(s => s.id === currentSessionId)?.name || "原始记录";
+        
+        const reviewWordList = unmasteredWords.map(word => ({
+            ...word,
+            id: word.id, 
+            mastered: false
+        }));
+        
+        const newSession = {
+            id: 'review_' + timestamp,
+            name: `复习清单 (${originalSessionName})`,
+            timestamp: timestamp,
+            wordList: reviewWordList,
+            currentIndex: -1,
+            isRandomMode: true 
+        };
+
+        allSessions.push(newSession);
+        saveAllSessions();
+        populateSessionSelector();
+        
+        loadSession(newSession.id);
+        alert(`已成功生成包含 ${reviewWordList.length} 个未掌握单词的复习清单！已自动切换到新清单。`);
+    }
+
+    // --- Excel/CSV 文件解析函数 ---
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect(event) {
+        const files = event.target.files;
+        if (files.length === 0) return;
+
+        const file = files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const data = e.target.result;
+            
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            const jsonArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            const dataRows = jsonArray.slice(1);
+            
+            const importedWords = dataRows.map((row, index) => {
+                if (row.length === 0 || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
+                     return null;
+                }
+                
+                if (row.length < 4) {
+                    console.warn(`Row ${index + 2} skipped due to insufficient data. Required 4 columns.`);
+                    return null;
+                }
+                
+                return {
+                    id: String(row[0] || index + 1) + '_' + new Date().getTime(), 
+                    word: String(row[1] || 'N/A'), 
+                    partOfSpeech: String(row[2] || 'N/A'),
+                    definition: String(row[3] || 'N/A'),
+                    errorCount: 0,
+                    mastered: false
+                };
+            }).filter(item => item !== null); 
+
+            if (importedWords.length === 0) {
+                alert('导入失败：未找到有效单词数据，请检查 Excel/CSV 文件格式。');
+                return;
+            }
+
+            const timestamp = new Date().getTime();
+            const newSession = {
+                id: 'session_' + timestamp,
+                name: file.name.replace(/\.[^/.]+$/, "") || `新导入记录 ${allSessions.length + 1}`,
+                timestamp: timestamp,
+                wordList: importedWords,
+                currentIndex: -1,
+                isRandomMode: false
+            };
+            
+            allSessions.push(newSession);
+            saveAllSessions();
+            populateSessionSelector();
+            
+            loadSession(newSession.id);
+            alert(`已成功导入 ${importedWords.length} 个单词，并创建新记录：${newSession.name}`);
+        };
+
+        reader.readAsBinaryString(file);
+        fileInput.value = ''; 
+    }
+
+
+    // --- 通用文本发音函数 (保持不变) ---
+    function speakText(elementId, type) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        // 如果单词被隐藏，先显示它再朗读
+        if (elementId === 'current-word' && isWordMasked) {
+             toggleWordVisibility();
+        }
+
+        let textToSpeak = element.textContent;
+
+        if (textToSpeak === '单词' || textToSpeak.includes('点击这里朗读') || textToSpeak.includes('请先导入文件')) {
+            return;
+        }
+        
+        if ('speechSynthesis' in window) {
+            speechSynthesis.cancel(); 
+            
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'en-US'; 
+            if (type === 'word') {
+                utterance.rate = 1.0; 
+            } else if (type === 'definition') {
+                utterance.rate = 0.85; 
+            }
+            utterance.pitch = 1; 
+
+            speechSynthesis.speak(utterance);
+        } else {
+            console.warn("当前浏览器不支持 Web Speech API.");
+        }
+    }
+
+
+    // --- 核心功能函数 ---
+    
+    function displayNextWord(shouldSave = true) {
+        if (wordList.length === 0) {
+            currentWordEl.textContent = '当前记录没有单词';
+            wordPosEl.textContent = '';
+            wordDefinitionEl.textContent = '请导入文件或加载记录';
+            updateStats();
+            return;
+        }
+
+        if (availableWords.length === 0) {
+            currentWordEl.textContent = '恭喜！所有单词已完成一轮。';
+            wordPosEl.textContent = '';
+            wordDefinitionEl.textContent = '正在重置未掌握的单词...';
+            
+            availableWords = wordList.filter(w => !w.mastered);
+            
+            if (availableWords.length === 0) {
+                 currentWordEl.textContent = '太棒了！所有单词都已记住！';
+                 wordDefinitionEl.textContent = '您可以生成复习清单或清空记录。';
+                 updateStats();
+                 return;
+            }
+        }
+        
+        let nextWord;
+        
+        if (isRandomMode) {
+            const randomIndex = Math.floor(Math.random() * availableWords.length);
+            nextWord = availableWords[randomIndex];
+            currentIndex = wordList.findIndex(w => w.id === nextWord.id);
+        } else {
+            let found = false;
+            let startIndex = (currentIndex !== -1 && !wordList[currentIndex].mastered) ? (currentIndex + 1) % wordList.length : 0;
+            
+            for (let i = 0; i < wordList.length; i++) {
+                let checkIndex = (startIndex + i) % wordList.length;
+                if (!wordList[checkIndex].mastered) {
+                    currentIndex = checkIndex;
+                    nextWord = wordList[currentIndex];
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                 currentIndex = -1;
+                 displayNextWord(); 
+                 return;
+            }
+        }
+
+        if (nextWord) {
+            wordPosEl.textContent = nextWord.partOfSpeech;
+            wordDefinitionEl.textContent = nextWord.definition;
+            
+            // 重置隐藏状态和揭示计数
+            isWordMasked = true;
+            revealedLettersCount = 0;
+            updateWordDisplay(); 
+
+            updateStats();
+            if (shouldSave) saveProgress(); 
+        }
+    }
+
+    function updateStats() {
+        if (wordList.length === 0) {
+            totalCountEl.textContent = 0;
+            masteredCountEl.textContent = 0;
+            errorCountEl.textContent = 0;
+            currentErrorStatsEl.textContent = 0;
+            currentSessionNameEl.textContent = '无';
+            return;
+        }
+        
+        const masteredCount = wordList.filter(w => w.mastered).length;
+        const totalErrorCount = wordList.reduce((sum, w) => sum + w.errorCount, 0);
+        const currentSession = allSessions.find(s => s.id === currentSessionId);
+        
+        totalCountEl.textContent = wordList.length;
+        masteredCountEl.textContent = masteredCount;
+        errorCountEl.textContent = totalErrorCount;
+        
+        currentSessionNameEl.textContent = currentSession ? currentSession.name : '未知记录';
+
+        const currentWord = wordList[currentIndex];
+        if (currentWord) {
+             currentErrorStatsEl.textContent = currentWord.errorCount;
+        } else {
+             currentErrorStatsEl.textContent = 'N/A';
+        }
+        
+        populateSessionSelector();
+    }
+
+    function markCorrect() {
+        const currentWord = wordList[currentIndex];
+        if (currentWord && !currentWord.mastered) {
+            currentWord.mastered = true;
+            availableWords = availableWords.filter(w => w.id !== currentWord.id);
+            displayNextWord();
+        }
+    }
+
+    function markWrong() {
+        const currentWord = wordList[currentIndex];
+        if (currentWord) {
+            currentWord.mastered = false;
+            currentWord.errorCount++; 
+            
+            if (!availableWords.some(w => w.id === currentWord.id)) {
+                 availableWords.push(currentWord);
+            }
+            
+            displayNextWord();
+        }
+    }
+
+    function toggleMode() {
+        isRandomMode = !isRandomMode;
+        btnMode.textContent = isRandomMode ? '切换到：顺序模式' : '切换到：随机模式';
+        
+        currentIndex = -1; 
+        
+        displayNextWord();
+    }
+    
+    // 监听点击模态框外部关闭
+    window.onclick = function(event) {
+        if (event.target == errorModal) {
+            closeModal();
+        }
+    }
+
+
+    // 4. 事件监听器
+    btnCorrect.addEventListener('click', markCorrect);
+    btnWrong.addEventListener('click', markWrong);
+    btnMode.addEventListener('click', toggleMode);
+    btnNext.addEventListener('click', () => displayNextWord(true)); 
+    btnClear.addEventListener('click', clearCurrentSessionProgress); 
+    btnLoadSession.addEventListener('click', () => {
+        const selectedId = sessionSelector.value;
+        if (selectedId) {
+            loadSession(selectedId);
+        } else {
+            alert("请选择一个学习记录。");
+        }
+    });
+    btnGenerateReview.addEventListener('click', generateReviewList);
+
+    // 新增按钮监听器
+    btnToggleWord.addEventListener('click', toggleWordVisibility);
+    btnRevealLetter.addEventListener('click', revealNextLetter);
+
+
+    // 5. 页面加载时自动运行
+    document.addEventListener('DOMContentLoaded', () => {
+        updateVersionInfo(); 
+        loadAllSessions(); 
+    });
+</script>
+</body>
 </html>
