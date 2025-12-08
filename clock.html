@@ -1,261 +1,282 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>手机全屏时钟</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            background-color: #000;
-            overflow: hidden;
-        }
-        #clock {
-            color: #ffffff;
-            font-family: 'Impact', 'Arial Black', sans-serif;
-            font-weight: 900;
-            text-align: center;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            white-space: nowrap;
-            width: 100%;
-            font-size: 100px;
-            letter-spacing: -5px;
-        }
-        #controls {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 10;
-            opacity: 0.7;
-        }
-        button, select {
-            font-size: 20px;
-            padding: 5px 10px;
-            margin: 0 5px;
-            background-color: #333;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机全屏时钟</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+            overflow: hidden;
+            touch-action: manipulation; /* 提高移动设备上的响应速度 */
+        }
+        #clock {
+            color: #ffffff;
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            font-weight: 900;
+            text-align: center;
+            position: absolute;
+            /* top, left, transform 将由 JS 控制 */
+            transform: translate(-50%, -50%); 
+            white-space: nowrap;
+            width: 100%; /* 允许时钟内容宽度占满屏幕，但实际字体大小由 JS 控制 */
+            letter-spacing: -5px;
+            box-sizing: border-box; /* 避免 padding 影响宽度计算 */
+            user-select: none; /* 防止选中时钟文本 */
+        }
+        #controls {
+            position: fixed; /* 使用 fixed 保证不随滚动条移动 */
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            opacity: 0.9;
+            transition: opacity 0.3s; /* 添加过渡效果 */
+        }
+        button, select {
+            font-size: 16px; /* 略微减小字体，优化在小屏上的显示 */
+            padding: 5px 10px;
+            margin: 0 3px;
+            background-color: rgba(51, 51, 51, 0.7); /* 半透明背景 */
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            backdrop-filter: blur(2px); /* 增加磨砂效果 */
+        }
+    </style>
 </head>
 <body onclick="showControls()">
-    <div id="clock"></div>
-    <div id="controls">
-        <button onclick="moveClock('up')">↑</button>
-        <button onclick="moveClock('down')">↓</button>
-        <button onclick="moveClock('left')">←</button>
-        <button onclick="moveClock('right')">→</button>
-        <button onclick="changeFontSize(-20)">-</button>
-        <button onclick="changeFontSize(20)">+</button>
-        <select id="fontSelect" onchange="changeFont()">
-            <option value="'Impact', 'Arial Black', sans-serif">Impact</option>
-            <option value="'Arial Black', sans-serif">Arial Black</option>
-            <option value="'Verdana', sans-serif">Verdana</option>
-            <option value="'Helvetica', sans-serif">Helvetica</option>
-            <option value="'Georgia', serif">Georgia</option>
-        </select>
-        <button onclick="goFullscreen()">全屏</button>
-    </div>
+    <div id="clock"></div>
+    <div id="controls">
+        <button onclick="moveClock('up')">↑</button>
+        <button onclick="moveClock('down')">↓</button>
+        <button onclick="moveClock('left')">←</button>
+        <button onclick="moveClock('right')">→</button>
+        <button onclick="changeFontSize(-10)">-</button> <button onclick="changeFontSize(10)">+</button> <select id="fontSelect" onchange="changeFont()">
+            <option value="'Impact', 'Arial Black', sans-serif">Impact</option>
+            <option value="'Arial Black', sans-serif">Arial Black</option>
+            <option value="'Verdana', sans-serif">Verdana</option>
+            <option value="'Helvetica', sans-serif">Helvetica</option>
+            <option value="'Georgia', serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier New</option>
+        </select>
+        <button onclick="toggleAutoAdjust()">自适应: 开</button>
+        <button onclick="goFullscreen()">全屏</button>
+    </div>
 
-    <script>
-        var currentFontSize = 100;
-        var hideTimeout = null;
-        var positionX = 50;
-        var positionY = 50;
-        var selectedFont = "'Impact', 'Arial Black', sans-serif";
+    <script>
+        var currentFontSize = 100;
+        var hideTimeout = null;
+        var positionX = 50;
+        var positionY = 50;
+        var selectedFont = "'Impact', 'Arial Black', sans-serif";
+        var isAutoAdjust = true; // 新增：控制是否自动调整字体大小
 
-        // 加载保存的设置
-        function loadSettings() {
-            if (localStorage.getItem('clockSettings')) {
-                var settings = JSON.parse(localStorage.getItem('clockSettings'));
-                currentFontSize = settings.fontSize || 100;
-                positionX = settings.positionX || 50;
-                positionY = settings.positionY || 50;
-                selectedFont = settings.font || "'Impact', 'Arial Black', sans-serif";
-                document.getElementById("fontSelect").value = selectedFont;
-            }
-            adjustFontSize();
-            updatePosition();
-            updateFont();
-        }
+        // 加载保存的设置
+        function loadSettings() {
+            if (localStorage.getItem('clockSettings')) {
+                var settings = JSON.parse(localStorage.getItem('clockSettings'));
+                currentFontSize = settings.fontSize || 100;
+                positionX = settings.positionX || 50;
+                positionY = settings.positionY || 50;
+                selectedFont = settings.font || "'Impact', 'Arial Black', sans-serif";
+                isAutoAdjust = settings.isAutoAdjust === false ? false : true; // 默认开启
+                document.getElementById("fontSelect").value = selectedFont;
+            }
+            toggleAutoAdjust(true); // 初始化按钮状态
+            updatePosition();
+            updateFont();
+            // 首次加载时，如果是自适应模式，则调整字体大小
+            if (isAutoAdjust) {
+                autoAdjustFontSize();
+            } else {
+                // 如果不是自适应，则应用保存的字体大小
+                document.getElementById("clock").style.fontSize = currentFontSize + "px";
+            }
+        }
 
-        // 保存设置
-        function saveSettings() {
-            var settings = {
-                fontSize: currentFontSize,
-                positionX: positionX,
-                positionY: positionY,
-                font: selectedFont
-            };
-            localStorage.setItem('clockSettings', JSON.stringify(settings));
-        }
+        // 保存设置
+        function saveSettings() {
+            var settings = {
+                fontSize: currentFontSize,
+                positionX: positionX,
+                positionY: positionY,
+                font: selectedFont,
+                isAutoAdjust: isAutoAdjust
+            };
+            localStorage.setItem('clockSettings', JSON.stringify(settings));
+        }
 
-        function updateClock() {
-            var now = new Date();
-            var hours = now.getHours();
-            var minutes = now.getMinutes();
-            hours = (hours < 10 ? "0" : "") + hours;
-            minutes = (minutes < 10 ? "0" : "") + minutes;
-            document.getElementById("clock").innerHTML = hours + ":" + minutes;
-        }
+        function updateClock() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            hours = (hours < 10 ? "0" : "") + hours;
+            minutes = (minutes < 10 ? "0" : "") + minutes;
+            document.getElementById("clock").innerHTML = hours + ":" + minutes;
+        }
 
-        function adjustFontSize() {
-            var clock = document.getElementById("clock");
-            var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            var adjustedHeight = screenHeight - 100;
-            currentFontSize = Math.min(screenWidth * 0.2, adjustedHeight * 0.95);
-            clock.style.fontSize = currentFontSize + "px";
-            updatePosition();
-            saveSettings();
-        }
+        // 新增：纯粹的自适应字体大小逻辑，只在 isAutoAdjust 为 true 时执行
+        function autoAdjustFontSize() {
+            if (!isAutoAdjust) return; // 如果关闭了自适应，则不执行
+            var clock = document.getElementById("clock");
+            var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            // 考虑到时钟居中，宽度限制应更保守
+            var maxFontSize = Math.min(screenWidth * 0.8 / 5, screenHeight * 0.95); // 0.8/5 是根据 5 个字符(HH:MM)粗略估算
+            currentFontSize = maxFontSize; // 更新 currentFontSize 以便保存
+            clock.style.fontSize = currentFontSize + "px";
+            updatePosition();
+            saveSettings();
+        }
 
-        function changeFontSize(delta) {
-            var clock = document.getElementById("clock");
-            currentFontSize += delta;
-            if (currentFontSize < 20) currentFontSize = 20;
-            if (currentFontSize > screenHeight) currentFontSize = screenHeight;
-            clock.style.fontSize = currentFontSize + "px";
-            startHideTimer();
-            saveSettings();
-        }
+        // 切换自适应模式
+        function toggleAutoAdjust(initialLoad = false) {
+            var button = document.querySelector("#controls button:nth-child(9)");
+            if (!initialLoad) {
+                isAutoAdjust = !isAutoAdjust;
+            }
+            if (isAutoAdjust) {
+                button.textContent = "自适应: 开";
+                autoAdjustFontSize(); // 开启时立即执行一次自适应
+                window.addEventListener('resize', autoAdjustFontSize); // 重新监听 resize
+            } else {
+                button.textContent = "自适应: 关";
+                window.removeEventListener('resize', autoAdjustFontSize); // 停止监听 resize
+                // 此时 currentFontSize 保持手动调整的值，不需要再执行 autoAdjustFontSize
+            }
+            saveSettings();
+            startHideTimer();
+        }
 
-        function moveClock(direction) {
-            if (direction === 'up') positionY -= 5;
-            if (direction === 'down') positionY += 5;
-            if (direction === 'left') positionX -= 5;
-            if (direction === 'right') positionX += 5;
+        // 手动调整字体大小
+        function changeFontSize(delta) {
+            var clock = document.getElementById("clock");
+            isAutoAdjust = false; // 任何手动调整都会关闭自适应
+            toggleAutoAdjust(true); // 更新按钮状态
+            
+            currentFontSize += delta;
+            // 设定合理的上下限
+            if (currentFontSize < 20) currentFontSize = 20;
+            // 屏幕高度作为上限（防止过大溢出）
+            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            if (currentFontSize > screenHeight * 0.95) currentFontSize = screenHeight * 0.95; 
 
-            if (positionX < 0) positionX = 0;
-            if (positionX > 100) positionX = 100;
-            if (positionY < 0) positionY = 0;
-            if (positionY > 100) positionY = 100;
+            clock.style.fontSize = currentFontSize + "px";
+            startHideTimer();
+            saveSettings();
+        }
 
-            updatePosition();
-            startHideTimer();
-            saveSettings();
-        }
+        function moveClock(direction) {
+            const step = 2; // 调整步长
+            if (direction === 'up') positionY -= step;
+            if (direction === 'down') positionY += step;
+            if (direction === 'left') positionX -= step;
+            if (direction === 'right') positionX += step;
 
-        function updatePosition() {
-            var clock = document.getElementById("clock");
-            clock.style.left = positionX + "%";
-            clock.style.top = positionY + "%";
-        }
+            // 限制在 0% 到 100% 之间
+            positionX = Math.min(100, Math.max(0, positionX));
+            positionY = Math.min(100, Math.max(0, positionY));
 
-        function changeFont() {
-            var clock = document.getElementById("clock");
-            selectedFont = document.getElementById("fontSelect").value;
-            clock.style.fontFamily = selectedFont;
-            startHideTimer();
-            saveSettings();
-        }
+            updatePosition();
+            startHideTimer();
+            saveSettings();
+        }
 
-        function startHideTimer() {
-            var controls = document.getElementById("controls");
-            if (hideTimeout) {
-                clearTimeout(hideTimeout);
-            }
-            hideTimeout = setTimeout(function() {
-                controls.style.display = "none";
-            }, 3000);
-        }
+        function updatePosition() {
+            var clock = document.getElementById("clock");
+            clock.style.left = positionX + "%";
+            clock.style.top = positionY + "%";
+        }
 
-        function showControls() {
-            var controls = document.getElementById("controls");
-            controls.style.display = "block";
-            startHideTimer();
-        }
+        function updateFont() {
+            var clock = document.getElementById("clock");
+            clock.style.fontFamily = selectedFont;
+        }
 
-        function goFullscreen() {
-            var userAgent = navigator.userAgent.toLowerCase();
-            var isAndroid = userAgent.indexOf("android") > -1;
-            var isWindowsPhone = userAgent.indexOf("windows phone") > -1;
+        function changeFont() {
+            selectedFont = document.getElementById("fontSelect").value;
+            updateFont();
+            startHideTimer();
+            saveSettings();
+        }
 
-            if (isAndroid) {
-                // Android 设备（N7100）
-                var element = document.documentElement;
-                if (element.requestFullscreen) {
-                    element.requestFullscreen();
-                } else if (element.webkitRequestFullScreen) {
-                    element.webkitRequestFullScreen();
-                }
-            } else if (isWindowsPhone) {
-                // Windows Phone 设备（Lumia 635）
-                window.scrollTo(0, 1); // 尝试隐藏地址栏
-                alert("请手动向上滑动隐藏导航栏以获得更大显示空间。");
-            }
-            startHideTimer();
-        }
+        function startHideTimer() {
+            var controls = document.getElementById("controls");
+            // controls.style.opacity = "0.7";
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            hideTimeout = setTimeout(function() {
+                controls.style.opacity = "0"; // 使用 opacity 隐藏，而不是 display: none
+                controls.style.pointerEvents = "none"; // 隐藏后禁用点击
+            }, 3000);
+        }
 
-        // 模拟用户活动以阻止锁屏
-        function preventScreenLock() {
-            window.scrollTo(0, window.scrollY === 0 ? 1 : 0);
-        }
+        function showControls() {
+            var controls = document.getElementById("controls");
+            controls.style.opacity = "0.9";
+            controls.style.pointerEvents = "auto";
+            startHideTimer();
+        }
 
-        // 每分钟更新时间
-        setInterval(updateClock, 60000);
-        // 每 10 秒模拟用户活动
-        setInterval(preventScreenLock, 10000);
-        // 页面加载时初始化
-        loadSettings();
-        updateClock();
-        window.onresize = adjustFontSize;
-    </script>
+        function goFullscreen() {
+            var element = document.documentElement;
+            // 兼容性全屏处理
+            if (document.fullscreenElement) {
+                // 退出全屏
+                document.exitFullscreen ? document.exitFullscreen() : 
+                document.mozCancelFullScreen ? document.mozCancelFullScreen() : 
+                document.webkitExitFullscreen ? document.webkitExitFullscreen() : 
+                document.msExitFullscreen ? document.msExitFullscreen() : null;
+            } else {
+                // 进入全屏
+                element.requestFullscreen ? element.requestFullscreen() : 
+                element.mozRequestFullScreen ? element.mozRequestFullScreen() : 
+                element.webkitRequestFullScreen ? element.webkitRequestFullScreen() : 
+                element.msRequestFullscreen ? element.msRequestFullscreen() : null;
+            }
+            startHideTimer();
+        }
+
+        // 模拟用户活动以阻止锁屏
+        function preventScreenLock() {
+            // 简单的每隔一段时间修改滚动位置，模拟用户活动
+            window.scrollTo(0, window.scrollY === 0 ? 1 : 0);
+        }
+        
+        // 监听全屏状态变化，以便在全屏和退出全屏时可能需要重新调整布局
+        document.addEventListener('fullscreenchange', () => {
+             // 全屏切换后，重新运行自适应以确保最佳显示
+             if (isAutoAdjust) {
+                 autoAdjustFontSize(); 
+             }
+        });
+
+
+        // --- 初始化和循环 ---
+        
+        // 每分钟更新时间
+        setInterval(updateClock, 60000);
+        // 每 10 秒模拟用户活动
+        setInterval(preventScreenLock, 10000);
+        // 页面加载时初始化
+        loadSettings();
+        updateClock();
+        
+        // window.onresize 的逻辑已移入 toggleAutoAdjust 和 loadSettings 中
+        if (isAutoAdjust) {
+            window.addEventListener('resize', autoAdjustFontSize);
+        } else {
+             // 确保在手动模式下，窗口大小变化不影响字体
+             window.removeEventListener('resize', autoAdjustFontSize);
+        }
+    </script>
 </body>
-<html style="height:100%; margin:0; padding:0">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-		<title>Clock</title>
-		<style type="text/css">
-			/* Customizable font and colors */
-			html {
-				background: #000000;
-				font-family: sans-serif;
-				font-weight: bold;
-				color: #FFFFFF;
-			}
-		</style>
-	</head>
-	
-	<body style="display:flex; height:100%; margin:0; padding:0; justify-content:center; align-items:center">
-		<span id="clocktext" style="font-kerning:none"></span>
-		
-		<script>
-			"use strict";
-			
-			let textElem = document.getElementById("clocktext");
-			const targetWidth = 0.9;  // Proportion of full screen width
-			let curFontSize = 20;  // Do not change
-			
-			function updateClock() {
-				const d = new Date();
-				let s = "";
-				s += (10 > d.getHours  () ? "0" : "") + d.getHours  () + ":";
-				s += (10 > d.getMinutes() ? "0" : "") + d.getMinutes();
-				textElem.textContent = s;
-				setTimeout(updateClock, 60000 - d.getTime() % 60000 + 100);
-			}
-			
-			function updateTextSize() {
-				for (let i = 0; 3 > i; i++) {  // Iterate for better better convergence
-					curFontSize *= targetWidth / (textElem.offsetWidth / textElem.parentNode.offsetWidth);
-					textElem.style.fontSize = curFontSize + "pt";
-				}
-			}
-			
-			updateClock();
-			updateTextSize();
-			window.addEventListener("resize", updateTextSize);
-		</script>
-	</body>
 </html>
