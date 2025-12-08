@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>手机全屏时钟</title>
+    <title>手机全屏时钟（手势缩放）</title>
     <style>
         html, body {
             margin: 0;
@@ -11,6 +11,8 @@
             height: 100%;
             width: 100%;
             background-color: #000;
+            /* 阻止在某些设备上的默认缩放行为 */
+            touch-action: none; 
             overflow: hidden;
         }
         #clock {
@@ -24,198 +26,114 @@
             transform: translate(-50%, -50%);
             white-space: nowrap;
             width: 100%;
-            font-size: 100px;
+            font-size: 100px; /* 初始字体大小，会被JS调整 */
             letter-spacing: -5px;
-        }
-        #controls {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 10;
-            opacity: 0.7;
-        }
-        button, select {
-            font-size: 20px;
-            padding: 5px 10px;
-            margin: 0 5px;
-            background-color: #333;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            /* 确保时钟元素可以接收触摸事件 */
+            user-select: none;
+            cursor: default;
         }
     </style>
 </head>
-<body onclick="showControls()">
+<body>
     <div id="clock"></div>
-    <div id="controls">
-        <button onclick="moveClock('up')">↑</button>
-        <button onclick="moveClock('down')">↓</button>
-        <button onclick="moveClock('left')">←</button>
-        <button onclick="moveClock('right')">→</button>
-        <button onclick="changeFontSize(-20)">-</button>
-        <button onclick="changeFontSize(20)">+</button>
-        <select id="fontSelect" onchange="changeFont()">
-            <option value="'Impact', 'Arial Black', sans-serif">Impact</option>
-            <option value="'Arial Black', sans-serif">Arial Black</option>
-            <option value="'Verdana', sans-serif">Verdana</option>
-            <option value="'Helvetica', sans-serif">Helvetica</option>
-            <option value="'Georgia', serif">Georgia</option>
-        </select>
-        <button onclick="goFullscreen()">全屏</button>
-    </div>
 
     <script>
+        var clockElement = document.getElementById("clock");
         var currentFontSize = 100;
-        var hideTimeout = null;
-        var positionX = 50;
-        var positionY = 50;
-        var selectedFont = "'Impact', 'Arial Black', sans-serif";
+        var initialPinchDistance = null;
+        var initialFontSize = null;
 
-        // 加载保存的设置
-        function loadSettings() {
-            if (localStorage.getItem('clockSettings')) {
-                var settings = JSON.parse(localStorage.getItem('clockSettings'));
-                currentFontSize = settings.fontSize || 100;
-                positionX = settings.positionX || 50;
-                positionY = settings.positionY || 50;
-                selectedFont = settings.font || "'Impact', 'Arial Black', sans-serif";
-                document.getElementById("fontSelect").value = selectedFont;
-            }
-            adjustFontSize();
-            updatePosition();
-            updateFont();
-        }
-
-        // 保存设置
-        function saveSettings() {
-            var settings = {
-                fontSize: currentFontSize,
-                positionX: positionX,
-                positionY: positionY,
-                font: selectedFont
-            };
-            localStorage.setItem('clockSettings', JSON.stringify(settings));
-        }
-
+        // ------------------------------------
+        // I. 核心时钟功能
+        // ------------------------------------
         function updateClock() {
             var now = new Date();
             var hours = now.getHours();
             var minutes = now.getMinutes();
-            // 保持两位数格式，但这里其实不需要，因为大数字体不需要前导零
-            // 仅保留 for consistency with original code
-            hours = (hours < 10 ? "0" : "") + hours; 
+            hours = (hours < 10 ? "0" : "") + hours;
             minutes = (minutes < 10 ? "0" : "") + minutes;
-            document.getElementById("clock").innerHTML = hours + ":" + minutes;
+            clockElement.innerHTML = hours + ":" + minutes;
         }
-
+        
+        // 自动调整初始字体大小以适应屏幕
         function adjustFontSize() {
-            var clock = document.getElementById("clock");
-            var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            
-            // 重新计算一个基于屏幕尺寸的默认字体大小
+            var screenWidth = window.innerWidth;
+            var screenHeight = window.innerHeight;
+            // 基于屏幕宽度和高度的比例设置初始大小
             currentFontSize = Math.min(screenWidth * 0.25, screenHeight * 0.95);
-            clock.style.fontSize = currentFontSize + "px";
-            updatePosition();
-            saveSettings();
+            clockElement.style.fontSize = currentFontSize + "px";
         }
 
-        function changeFontSize(delta) {
-            var clock = document.getElementById("clock");
-            currentFontSize += delta;
-            if (currentFontSize < 20) currentFontSize = 20;
-            // 限制最大字体大小，不应超过屏幕高度
-            var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            if (currentFontSize > screenHeight) currentFontSize = screenHeight; 
-            clock.style.fontSize = currentFontSize + "px";
-            startHideTimer();
-            saveSettings();
-        }
+        // ------------------------------------
+        // II. 手势缩放功能 (Pinch-to-Zoom)
+        // ------------------------------------
 
-        function moveClock(direction) {
-            if (direction === 'up') positionY -= 5;
-            if (direction === 'down') positionY += 5;
-            if (direction === 'left') positionX -= 5;
-            if (direction === 'right') positionX += 5;
+        // 计算两点之间的欧几里得距离
+        function getDistance(touches) {
+            if (touches.length < 2) return null;
+            var dx = touches[0].pageX - touches[1].pageX;
+            var dy = touches[0].pageY - touches[1].pageY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
 
-            if (positionX < 0) positionX = 0;
-            if (positionX > 100) positionX = 100;
-            if (positionY < 0) positionY = 0;
-            if (positionY > 100) positionY = 100;
+        // 触摸开始：记录初始状态
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length === 2) {
+                // 阻止默认的缩放/滚动行为
+                event.preventDefault(); 
+                initialPinchDistance = getDistance(event.touches);
+                // 从当前DOM样式获取当前的字体大小
+                var currentSizeStr = window.getComputedStyle(clockElement).fontSize;
+                initialFontSize = parseFloat(currentSizeStr);
+            }
+        }, { passive: false }); // 需要将 passive 设置为 false 来调用 preventDefault
 
-            updatePosition();
-            startHideTimer();
-            saveSettings();
-        }
+        // 触摸移动：根据距离变化计算新的字体大小
+        document.addEventListener('touchmove', function(event) {
+            if (event.touches.length === 2 && initialPinchDistance !== null) {
+                event.preventDefault(); // 再次阻止默认行为
+                var currentPinchDistance = getDistance(event.touches);
 
-        function updatePosition() {
-            var clock = document.getElementById("clock");
-            clock.style.left = positionX + "%";
-            clock.style.top = positionY + "%";
-        }
+                if (currentPinchDistance > 0 && initialPinchDistance > 0) {
+                    var scale = currentPinchDistance / initialPinchDistance;
+                    currentFontSize = initialFontSize * scale;
+                    
+                    // 限制最小和最大字体大小
+                    if (currentFontSize < 30) currentFontSize = 30;
+                    if (currentFontSize > window.innerHeight * 1.5) currentFontSize = window.innerHeight * 1.5;
 
-        function updateFont() {
-            var clock = document.getElementById("clock");
-            // 确保字体选择器选中了当前字体
-            document.getElementById("fontSelect").value = selectedFont;
-            clock.style.fontFamily = selectedFont;
-        }
-        
-        function changeFont() {
-            selectedFont = document.getElementById("fontSelect").value;
-            updateFont();
-            startHideTimer();
-            saveSettings();
-        }
+                    clockElement.style.fontSize = currentFontSize + "px";
+                }
+            }
+        }, { passive: false });
 
-        function startHideTimer() {
-            var controls = document.getElementById("controls");
-            if (hideTimeout) {
-                clearTimeout(hideTimeout);
-            }
-            hideTimeout = setTimeout(function() {
-                controls.style.display = "none";
-            }, 3000);
-        }
+        // 触摸结束：重置状态
+        document.addEventListener('touchend', function(event) {
+            // 只有当触摸点数量降到 2 以下时才重置
+            if (event.touches.length < 2) { 
+                initialPinchDistance = null;
+                initialFontSize = null;
+            }
+        });
 
-        function showControls() {
-            var controls = document.getElementById("controls");
-            controls.style.display = "block";
-            startHideTimer();
-        }
 
-        function goFullscreen() {
-            // 尝试进入全屏模式
-            var element = document.documentElement;
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) { /* Firefox */
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullScreen) { /* Chrome, Safari and Opera */
-                element.webkitRequestFullScreen();
-            } else if (element.msRequestFullscreen) { /* IE/Edge */
-                element.msRequestFullscreen();
-            }
-            startHideTimer();
-        }
-        
-        // 模拟用户活动以阻止锁屏
-        function preventScreenLock() {
-            // 在移动设备上，通过滚动一小段距离（0 -> 1 -> 0）来阻止屏幕锁定
-            // 这在现代浏览器中不一定有效，但可以尝试。
+        // ------------------------------------
+        // III. 运行和初始化
+        // ------------------------------------
+
+        // 每分钟更新一次时间
+        setInterval(updateClock, 60000); 
+
+        // 阻止屏幕锁定的逻辑 (可选，因为现代浏览器限制了这种行为)
+        function preventScreenLock() {
             var currentScroll = window.scrollY;
             window.scrollTo(0, currentScroll === 0 ? 1 : 0);
-        }
+        }
+        setInterval(preventScreenLock, 10000);
 
-        // 每分钟更新时间
-        setInterval(updateClock, 60000);
-        // 每 10 秒模拟用户活动
-        setInterval(preventScreenLock, 10000);
-        // 页面加载时初始化
-        loadSettings();
+
+        // 页面加载时初始化
+        adjustFontSize();
         updateClock();
         window.onresize = adjustFontSize;
     </script>
