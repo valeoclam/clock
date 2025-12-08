@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>手机全屏时钟（手势缩放）</title>
+    <title>全屏时钟</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             height: 100%;
             width: 100%;
-            /* 保持黑底效果 */
+            /* 【黑色背景】 */
             background-color: #000; 
-            /* 阻止在某些设备上的默认缩放行为 */
             touch-action: none; 
             overflow: hidden;
         }
         #clock {
-            /* 保持白字效果 */
+            /* 【白色字体】 */
             color: #ffffff; 
+            /* 【加粗字体】 Impact 字体本身就很粗 */
             font-family: 'Impact', 'Arial Black', sans-serif;
             font-weight: 900;
             text-align: center;
@@ -28,7 +28,7 @@
             transform: translate(-50%, -50%);
             white-space: nowrap;
             width: 100%;
-            font-size: 100px; /* 初始字体大小，会被JS调整 */
+            font-size: 100px; 
             letter-spacing: -5px;
             user-select: none;
             cursor: default;
