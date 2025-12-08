@@ -12,7 +12,7 @@
             width: 100%;
             background-color: #000;
             overflow: hidden;
-            touch-action: manipulation; /* 提高移动设备上的响应速度 */
+            touch-action: manipulation;
         }
         #clock {
             color: #ffffff;
@@ -22,32 +22,35 @@
             position: absolute;
             /* top, left, transform 将由 JS 控制 */
             transform: translate(-50%, -50%); 
+            -ms-transform: translate(-50%, -50%); /* 针对 IE/Edge 的前缀 */
             white-space: nowrap;
-            width: 100%; /* 允许时钟内容宽度占满屏幕，但实际字体大小由 JS 控制 */
+            width: 100%;
             letter-spacing: -5px;
-            box-sizing: border-box; /* 避免 padding 影响宽度计算 */
-            user-select: none; /* 防止选中时钟文本 */
+            box-sizing: border-box;
+            user-select: none;
+            font-size: 150px; /* 默认回退值 */
         }
         #controls {
-            position: fixed; /* 使用 fixed 保证不随滚动条移动 */
+            position: fixed;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             z-index: 10;
-            opacity: 0.9;
-            transition: opacity 0.3s; /* 添加过渡效果 */
+            opacity: 0; /* 默认隐藏 */
+            pointer-events: none; /* 默认禁用点击 */
+            transition: opacity 0.3s;
         }
         button, select {
-            font-size: 16px; /* 略微减小字体，优化在小屏上的显示 */
+            font-size: 16px;
             padding: 5px 10px;
             margin: 0 3px;
-            background-color: rgba(51, 51, 51, 0.7); /* 半透明背景 */
+            background-color: rgba(51, 51, 51, 0.7);
             color: #fff;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            backdrop-filter: blur(2px); /* 增加磨砂效果 */
+            backdrop-filter: blur(2px);
         }
     </style>
 </head>
@@ -58,7 +61,9 @@
         <button onclick="moveClock('down')">↓</button>
         <button onclick="moveClock('left')">←</button>
         <button onclick="moveClock('right')">→</button>
-        <button onclick="changeFontSize(-10)">-</button> <button onclick="changeFontSize(10)">+</button> <select id="fontSelect" onchange="changeFont()">
+        <button onclick="changeFontSize(-10)">-</button>
+        <button onclick="changeFontSize(10)">+</button>
+        <select id="fontSelect" onchange="changeFont()">
             <option value="'Impact', 'Arial Black', sans-serif">Impact</option>
             <option value="'Arial Black', sans-serif">Arial Black</option>
             <option value="'Verdana', sans-serif">Verdana</option>
@@ -66,39 +71,38 @@
             <option value="'Georgia', serif">Georgia</option>
             <option value="'Courier New', monospace">Courier New</option>
         </select>
-        <button onclick="toggleAutoAdjust()">自适应: 开</button>
+        <button id="autoAdjustBtn" onclick="toggleAutoAdjust()">自适应: 开</button>
         <button onclick="goFullscreen()">全屏</button>
     </div>
 
     <script>
-        var currentFontSize = 100;
+        // --- 版本号变量 ---
+        const CURRENT_VERSION = "2025.12.08.01"; // 每次更新代码时手动修改此版本号
+        // --------------------
+
+        var currentFontSize = 150;
         var hideTimeout = null;
         var positionX = 50;
         var positionY = 50;
         var selectedFont = "'Impact', 'Arial Black', sans-serif";
-        var isAutoAdjust = true; // 新增：控制是否自动调整字体大小
+        var isAutoAdjust = true; 
 
         // 加载保存的设置
         function loadSettings() {
             if (localStorage.getItem('clockSettings')) {
                 var settings = JSON.parse(localStorage.getItem('clockSettings'));
-                currentFontSize = settings.fontSize || 100;
+                // 如果是手动模式，则加载保存的字体大小，否则在 autoAdjustFontSize 中计算
+                currentFontSize = settings.fontSize || 150; 
                 positionX = settings.positionX || 50;
                 positionY = settings.positionY || 50;
                 selectedFont = settings.font || "'Impact', 'Arial Black', sans-serif";
-                isAutoAdjust = settings.isAutoAdjust === false ? false : true; // 默认开启
+                isAutoAdjust = settings.isAutoAdjust === false ? false : true;
                 document.getElementById("fontSelect").value = selectedFont;
             }
-            toggleAutoAdjust(true); // 初始化按钮状态
+            
+            toggleAutoAdjust(true); // 初始化按钮状态并应用字体大小/自适应逻辑
             updatePosition();
             updateFont();
-            // 首次加载时，如果是自适应模式，则调整字体大小
-            if (isAutoAdjust) {
-                autoAdjustFontSize();
-            } else {
-                // 如果不是自适应，则应用保存的字体大小
-                document.getElementById("clock").style.fontSize = currentFontSize + "px";
-            }
         }
 
         // 保存设置
@@ -122,15 +126,22 @@
             document.getElementById("clock").innerHTML = hours + ":" + minutes;
         }
 
-        // 新增：纯粹的自适应字体大小逻辑，只在 isAutoAdjust 为 true 时执行
+        // Lumia 635 兼容性修复后的自适应字体大小逻辑
         function autoAdjustFontSize() {
-            if (!isAutoAdjust) return; // 如果关闭了自适应，则不执行
+            if (!isAutoAdjust) return;
+            
             var clock = document.getElementById("clock");
             var screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            // 考虑到时钟居中，宽度限制应更保守
-            var maxFontSize = Math.min(screenWidth * 0.8 / 5, screenHeight * 0.95); // 0.8/5 是根据 5 个字符(HH:MM)粗略估算
-            currentFontSize = maxFontSize; // 更新 currentFontSize 以便保存
+            
+            // **关键修复：恢复 Windows Phone 兼容性调整**
+            // 减去 100px 是为了避开 Windows Phone 底部导航栏或修正其高度报告错误
+            var adjustedHeight = screenHeight - 100; 
+            
+            // 根据原始代码的计算逻辑，确保数字在屏幕内可见
+            var calculatedFontSize = Math.min(screenWidth * 0.2, adjustedHeight * 0.95);
+
+            currentFontSize = calculatedFontSize; 
             clock.style.fontSize = currentFontSize + "px";
             updatePosition();
             saveSettings();
@@ -138,18 +149,20 @@
 
         // 切换自适应模式
         function toggleAutoAdjust(initialLoad = false) {
-            var button = document.querySelector("#controls button:nth-child(9)");
+            var button = document.getElementById("autoAdjustBtn");
             if (!initialLoad) {
                 isAutoAdjust = !isAutoAdjust;
             }
+            
             if (isAutoAdjust) {
                 button.textContent = "自适应: 开";
                 autoAdjustFontSize(); // 开启时立即执行一次自适应
-                window.addEventListener('resize', autoAdjustFontSize); // 重新监听 resize
+                window.addEventListener('resize', autoAdjustFontSize); // 监听 resize
             } else {
                 button.textContent = "自适应: 关";
                 window.removeEventListener('resize', autoAdjustFontSize); // 停止监听 resize
-                // 此时 currentFontSize 保持手动调整的值，不需要再执行 autoAdjustFontSize
+                // 切换到手动模式时，应用 currentFontSize（可能是上次手动调整的值）
+                document.getElementById("clock").style.fontSize = currentFontSize + "px";
             }
             saveSettings();
             startHideTimer();
@@ -158,13 +171,15 @@
         // 手动调整字体大小
         function changeFontSize(delta) {
             var clock = document.getElementById("clock");
-            isAutoAdjust = false; // 任何手动调整都会关闭自适应
-            toggleAutoAdjust(true); // 更新按钮状态
+            if (isAutoAdjust) {
+                isAutoAdjust = false; // 任何手动调整都会关闭自适应
+                toggleAutoAdjust(true); // 更新按钮状态，但不是初始加载
+            }
             
             currentFontSize += delta;
-            // 设定合理的上下限
             if (currentFontSize < 20) currentFontSize = 20;
-            // 屏幕高度作为上限（防止过大溢出）
+
+            // 限制最大字体大小
             var screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
             if (currentFontSize > screenHeight * 0.95) currentFontSize = screenHeight * 0.95; 
 
@@ -174,13 +189,12 @@
         }
 
         function moveClock(direction) {
-            const step = 2; // 调整步长
+            const step = 2;
             if (direction === 'up') positionY -= step;
             if (direction === 'down') positionY += step;
             if (direction === 'left') positionX -= step;
             if (direction === 'right') positionX += step;
 
-            // 限制在 0% 到 100% 之间
             positionX = Math.min(100, Math.max(0, positionX));
             positionY = Math.min(100, Math.max(0, positionY));
 
@@ -209,13 +223,12 @@
 
         function startHideTimer() {
             var controls = document.getElementById("controls");
-            // controls.style.opacity = "0.7";
             if (hideTimeout) {
                 clearTimeout(hideTimeout);
             }
             hideTimeout = setTimeout(function() {
-                controls.style.opacity = "0"; // 使用 opacity 隐藏，而不是 display: none
-                controls.style.pointerEvents = "none"; // 隐藏后禁用点击
+                controls.style.opacity = "0";
+                controls.style.pointerEvents = "none";
             }, 3000);
         }
 
@@ -229,7 +242,7 @@
         function goFullscreen() {
             var element = document.documentElement;
             // 兼容性全屏处理
-            if (document.fullscreenElement) {
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
                 // 退出全屏
                 document.exitFullscreen ? document.exitFullscreen() : 
                 document.mozCancelFullScreen ? document.mozCancelFullScreen() : 
@@ -244,39 +257,43 @@
             }
             startHideTimer();
         }
-
+        
         // 模拟用户活动以阻止锁屏
         function preventScreenLock() {
-            // 简单的每隔一段时间修改滚动位置，模拟用户活动
             window.scrollTo(0, window.scrollY === 0 ? 1 : 0);
         }
         
-        // 监听全屏状态变化，以便在全屏和退出全屏时可能需要重新调整布局
-        document.addEventListener('fullscreenchange', () => {
-             // 全屏切换后，重新运行自适应以确保最佳显示
-             if (isAutoAdjust) {
-                 autoAdjustFontSize(); 
-             }
-        });
+        // --- 版本检查逻辑（需要服务器支持）---
+        function checkLatestVersion() {
+            // 请将此处替换为您服务器上托管的最新版本 JSON 文件路径
+            const versionCheckUrl = 'https://yourdomain.com/clock_version.json?t=' + new Date().getTime(); 
 
-
+            fetch(versionCheckUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const latestVersion = data.version;
+                    if (latestVersion && latestVersion !== CURRENT_VERSION) {
+                        alert(`时钟程序有新版本 (${latestVersion})，请刷新页面！您当前版本是 ${CURRENT_VERSION}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('无法检查最新版本，可能网络不通或版本文件不存在:', error);
+                });
+        }
+        
         // --- 初始化和循环 ---
         
         // 每分钟更新时间
         setInterval(updateClock, 60000);
         // 每 10 秒模拟用户活动
         setInterval(preventScreenLock, 10000);
+        // 每 5 分钟检查一次版本更新
+        setInterval(checkLatestVersion, 5 * 60 * 1000);
+        
         // 页面加载时初始化
         loadSettings();
         updateClock();
-        
-        // window.onresize 的逻辑已移入 toggleAutoAdjust 和 loadSettings 中
-        if (isAutoAdjust) {
-            window.addEventListener('resize', autoAdjustFontSize);
-        } else {
-             // 确保在手动模式下，窗口大小变化不影响字体
-             window.removeEventListener('resize', autoAdjustFontSize);
-        }
+        checkLatestVersion(); // 立即检查一次
     </script>
 </body>
 </html>
