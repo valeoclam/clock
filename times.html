@@ -3,31 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumia Stable Clock</title>
+    <title>Lumia Click Clock</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000000; color: #ffffff;
             overflow: hidden; font-family: "Segoe UI", sans-serif;
+            -ms-touch-action: none; /* 禁用 IE 默认触控行为 */
         }
-        .flex-container { display: table; width: 100%; height: 100%; }
+        /* 布局容器 */
+        .container { display: table; width: 100%; height: 100%; position: relative; }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
         #clock {
-            font-size: 35vw; /* 初始大小 */
+            font-size: 40vw; 
             font-weight: bold;
             line-height: 1;
             display: inline-block;
-            white-space: nowrap;
         }
-        /* 横屏适配 */
+        /* 点击区域透明覆盖层 */
+        .touch-zone {
+            position: absolute; top: 0; height: 100%; width: 50%;
+            z-index: 10;
+        }
+        .left-zone { left: 0; }
+        .right-zone { right: 0; }
+
         @media screen and (orientation: landscape) {
-            #clock { font-size: 45vh; }
+            #clock { font-size: 50vh; }
         }
     </style>
 </head>
 <body>
 
-    <div class="flex-container">
+    <div class="container">
+        <div class="touch-zone left-zone" onclick="changeSize(-5)"></div>
+        <div class="touch-zone right-zone" onclick="changeSize(5)"></div>
+        
         <div class="clock-wrapper">
             <div id="clock">00:00</div>
         </div>
@@ -35,54 +46,33 @@
 
     <script type="text/javascript">
         var clockEl = document.getElementById("clock");
-        var baseFontSize = 35; // 基础大小数值
-        var lastDist = 0;
+        var currentSize = 40;
 
         function updateTime() {
             var now = new Date();
             var h = now.getHours();
             var m = now.getMinutes();
-            h = h < 10 ? "0" + h : h;
-            m = m < 10 ? "0" + m : m;
+            h = (h < 10) ? "0" + h : h;
+            m = (m < 10) ? "0" + m : m;
             clockEl.innerText = h + ":" + m;
         }
 
-        // 兼容 IE11 的触摸事件处理
-        document.addEventListener('touchmove', function(e) {
-            if (e.touches && e.touches.length === 2) {
-                // 阻止浏览器默认缩放
-                if(e.preventDefault) e.preventDefault();
-
-                var dx = e.touches[0].pageX - e.touches[1].pageX;
-                var dy = e.touches[0].pageY - e.touches[1].pageY;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (lastDist > 0) {
-                    var diff = dist - lastDist;
-                    // 缩放灵敏度系数
-                    baseFontSize += diff * 0.1;
-                    
-                    // 限制范围
-                    if (baseFontSize < 10) baseFontSize = 10;
-                    if (baseFontSize > 95) baseFontSize = 95;
-
-                    // 判断横竖屏应用单位
-                    var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
-                    clockEl.style.fontSize = baseFontSize + unit;
-                }
-                lastDist = dist;
-            }
-        }, false);
-
-        document.addEventListener('touchend', function() {
-            lastDist = 0;
-        }, false);
+        function changeSize(delta) {
+            currentSize += delta;
+            // 限制范围
+            if (currentSize < 10) currentSize = 10;
+            if (currentSize > 120) currentSize = 120;
+            
+            // 根据横竖屏决定单位
+            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
+            clockEl.style.fontSize = currentSize + unit;
+        }
 
         // 初始化
         setInterval(updateTime, 1000);
         updateTime();
 
-        // 窗口旋转时重置
+        // 旋转校正
         window.onresize = function() { updateTime(); };
     </script>
 </body>
