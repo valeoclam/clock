@@ -5,45 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lumia Pro Clock</title>
     <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000000; color: #ffffff;
-            overflow: hidden; font-family: "Segoe UI", sans-serif;
-            -ms-touch-action: none;
-        }
-        .container { display: table; width: 100%; height: 100%; position: relative; }
-        .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
-        #clock {
-            font-size: 40vw; 
-            font-weight: bold;
-            line-height: 1;
-            display: inline-block;
-        }
-        /* 浮动按键样式 */
-        .btn {
-            position: absolute;
-            bottom: 10%;
-            width: 60px;
-            height: 60px;
-            line-height: 55px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid #fff;
-            color: #fff;
-            border-radius: 50%;
-            text-align: center;
-            font-size: 40px;
-            font-weight: bold;
-            z-index: 100;
-            display: none; /* 初始隐藏 */
-            -ms-user-select: none;
-        }
-        #btn-minus { left: 15%; }
-        #btn-plus { right: 15%; }
+    body, html {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        background-color: #000000; color: #ffffff;
+        overflow: hidden; 
+        /* 1. 默认使用 Segoe UI Black，这是 WP 上最粗的系统字体 */
+        font-family: "Segoe UI Black", "Segoe UI", sans-serif;
+        -ms-touch-action: none;
+    }
+    .container { display: table; width: 100%; height: 100%; position: relative; }
+    .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
+    
+    #clock {
+        /* 2. 初始字体设大，并压缩行高以减少上下留空 */
+        font-size: 45vw; 
+        font-weight: 900;
+        line-height: 0.8; 
+        display: inline-block;
+        letter-spacing: -2px; /* 缩小数字间距，更显饱满 */
+    }
 
-        @media screen and (orientation: landscape) {
-            #clock { font-size: 50vh; }
-        }
-    </style>
+    /* 3. 横屏下进一步放大 */
+    @media screen and (orientation: landscape) {
+        #clock { font-size: 75vh; }
+    }
+
+    .btn {
+        position: absolute; bottom: 10%; width: 60px; height: 60px;
+        line-height: 55px; background: rgba(255, 255, 255, 0.2);
+        border: 2px solid #fff; color: #fff; border-radius: 50%;
+        text-align: center; font-size: 40px; z-index: 100;
+        display: none;
+    }
+    #btn-minus { left: 10%; }
+    #btn-plus { right: 10%; }
+</style>
 </head>
 <body onclick="showControls()">
 
