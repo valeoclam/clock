@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumia Click Clock</title>
+    <title>Lumia Pro Clock</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000000; color: #ffffff;
             overflow: hidden; font-family: "Segoe UI", sans-serif;
-            -ms-touch-action: none; /* 禁用 IE 默认触控行为 */
+            -ms-touch-action: none;
         }
-        /* 布局容器 */
         .container { display: table; width: 100%; height: 100%; position: relative; }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
         #clock {
@@ -20,24 +19,37 @@
             line-height: 1;
             display: inline-block;
         }
-        /* 点击区域透明覆盖层 */
-        .touch-zone {
-            position: absolute; top: 0; height: 100%; width: 50%;
-            z-index: 10;
+        /* 浮动按键样式 */
+        .btn {
+            position: absolute;
+            bottom: 10%;
+            width: 60px;
+            height: 60px;
+            line-height: 55px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 40px;
+            font-weight: bold;
+            z-index: 100;
+            display: none; /* 初始隐藏 */
+            -ms-user-select: none;
         }
-        .left-zone { left: 0; }
-        .right-zone { right: 0; }
+        #btn-minus { left: 15%; }
+        #btn-plus { right: 15%; }
 
         @media screen and (orientation: landscape) {
             #clock { font-size: 50vh; }
         }
     </style>
 </head>
-<body>
+<body onclick="showControls()">
 
     <div class="container">
-        <div class="touch-zone left-zone" onclick="changeSize(-5)"></div>
-        <div class="touch-zone right-zone" onclick="changeSize(5)"></div>
+        <div id="btn-minus" class="btn" onclick="changeSize(-5); event.stopPropagation();">-</div>
+        <div id="btn-plus" class="btn" onclick="changeSize(5); event.stopPropagation();">+</div>
         
         <div class="clock-wrapper">
             <div id="clock">00:00</div>
@@ -46,7 +58,10 @@
 
     <script type="text/javascript">
         var clockEl = document.getElementById("clock");
+        var btnMinus = document.getElementById("btn-minus");
+        var btnPlus = document.getElementById("btn-plus");
         var currentSize = 40;
+        var timer = null;
 
         function updateTime() {
             var now = new Date();
@@ -57,22 +72,35 @@
             clockEl.innerText = h + ":" + m;
         }
 
-        function changeSize(delta) {
-            currentSize += delta;
-            // 限制范围
-            if (currentSize < 10) currentSize = 10;
-            if (currentSize > 120) currentSize = 120;
+        function showControls() {
+            // 显示按钮
+            btnMinus.style.display = "block";
+            btnPlus.style.display = "block";
             
-            // 根据横竖屏决定单位
-            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
-            clockEl.style.fontSize = currentSize + unit;
+            // 如果已有定时器则清除，重新计时
+            if (timer) clearTimeout(timer);
+            
+            // 5秒后隐藏
+            timer = setTimeout(function() {
+                btnMinus.style.display = "none";
+                btnPlus.style.display = "none";
+            }, 5000);
         }
 
-        // 初始化
+        function changeSize(delta) {
+            currentSize += delta;
+            if (currentSize < 10) currentSize = 10;
+            if (currentSize > 150) currentSize = 150;
+            
+            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
+            clockEl.style.fontSize = currentSize + unit;
+            
+            // 点击按钮时刷新隐藏时间
+            showControls();
+        }
+
         setInterval(updateTime, 1000);
         updateTime();
-
-        // 旋转校正
         window.onresize = function() { updateTime(); };
     </script>
 </body>
