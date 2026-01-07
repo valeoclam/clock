@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumia Slim Clock</title>
+    <title>Lumia Custom Clock</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -14,37 +14,38 @@
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
         
         #clock {
-            /* 使用 Light 系列实现细长感，去掉 bold */
-            font-family: "Segoe UI Light", "Segoe UI Semilight", sans-serif;
-            font-size: 48vw; 
+            /* 初始设为细体 */
+            font-family: "Segoe UI Light", sans-serif;
+            font-size: 45vw; 
             font-weight: 100; 
             line-height: 1; 
             display: inline-block;
-            letter-spacing: -2px; /* 适当紧凑 */
-            word-break: keep-all;
+            transition: transform 0.2s; /* 增加平滑过渡效果 */
         }
 
         @media screen and (orientation: landscape) {
-            #clock { font-size: 85vh; }
+            #clock { font-size: 80vh; }
         }
 
         /* 按钮样式 */
         .btn {
-            position: absolute; width: 60px; height: 60px;
-            line-height: 55px; background: rgba(255, 255, 255, 0.15);
+            position: absolute; width: 55px; height: 55px;
+            line-height: 52px; background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; 
             border-radius: 50%; text-align: center; z-index: 100;
-            display: none; -ms-user-select: none;
+            display: none; -ms-user-select: none; font-family: "Segoe UI", sans-serif;
         }
-        #btn-minus { bottom: 10%; left: 8%; font-size: 40px; }
-        #btn-plus { bottom: 10%; right: 8%; font-size: 40px; }
-        #btn-font { top: 10%; left: 50%; margin-left: -30px; font-size: 20px; line-height: 60px; }
+        #btn-minus { bottom: 10%; left: 5%; font-size: 35px; }
+        #btn-plus { bottom: 10%; right: 5%; font-size: 35px; }
+        #btn-font { top: 8%; left: 8%; font-size: 18px; }
+        #btn-stretch { top: 8%; right: 8%; font-size: 25px; }
     </style>
 </head>
 <body onclick="showControls()">
 
     <div class="container">
-        <div id="btn-font" class="btn" onclick="changeFont(); event.stopPropagation();">Aa</div>
+        <div id="btn-font" class="btn" onclick="changeFont(); event.stopPropagation();">字体</div>
+        <div id="btn-stretch" class="btn" onclick="changeStretch(); event.stopPropagation();">↕</div>
         <div id="btn-minus" class="btn" onclick="changeSize(-5); event.stopPropagation();">-</div>
         <div id="btn-plus" class="btn" onclick="changeSize(5); event.stopPropagation();">+</div>
         
@@ -56,21 +57,24 @@
     <script type="text/javascript">
         var clockEl = document.getElementById("clock");
         var btns = document.getElementsByClassName("btn");
-        var currentSize = 48;
+        var currentSize = 45;
+        var currentStretch = 1.0;
         var timer = null;
 
-        // 预设几种细体和修长的系统字体
+        // 扩充更多风格字体：细体、窄体、现代体
         var fonts = [
-            '"Segoe UI Light", sans-serif',
-            '"Segoe UI Semilight", sans-serif',
-            '"Calibri Light", sans-serif'
+            '"Segoe UI Light", sans-serif',      // 纤细
+            '"Segoe UI Semilight", sans-serif', // 适中
+            '"Impact", sans-serif',             // 极窄（虽然厚但非常高瘦）
+            '"Calibri Light", sans-serif',      // 现代
+            '"Arial", sans-serif'               // 标准
         ];
         var fontIndex = 0;
 
         function updateTime() {
             var now = new Date();
             var h = now.getHours(), m = now.getMinutes();
-            // 使用标准半角冒号
+            // 强制半角冒号
             clockEl.innerText = (h < 10 ? "0"+h : h) + ":" + (m < 10 ? "0"+m : m);
         }
 
@@ -93,7 +97,23 @@
         function changeFont() {
             fontIndex = (fontIndex + 1) % fonts.length;
             clockEl.style.fontFamily = fonts[fontIndex];
+            // 针对 Impact 这种极窄字体，默认不拉长
+            if(fontIndex === 2) currentStretch = 1.0;
+            applyTransform();
             showControls();
+        }
+
+        // 新增拉长逻辑：通过 scaleY 纵向拉伸
+        function changeStretch() {
+            currentStretch += 0.2;
+            if (currentStretch > 2.0) currentStretch = 1.0; // 循环：1.0 -> 1.2 -> 1.4... -> 1.0
+            applyTransform();
+            showControls();
+        }
+
+        function applyTransform() {
+            clockEl.style.msTransform = "scaleY(" + currentStretch + ")";
+            clockEl.style.transform = "scaleY(" + currentStretch + ")";
         }
 
         setInterval(updateTime, 1000);
