@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumia Multi-Font Clock</title>
+    <title>Lumia Slim Clock</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -13,32 +13,31 @@
         .container { display: table; width: 100%; height: 100%; position: relative; }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
         
-        /* 核心时钟样式：初始使用 Segoe UI Black 撑满屏幕 */
         #clock {
-            font-family: "Segoe UI Black", sans-serif;
-            font-size: 45vw; 
-            font-weight: 900;
-            line-height: 0.8; 
+            /* 使用 Light 系列实现细长感，去掉 bold */
+            font-family: "Segoe UI Light", "Segoe UI Semilight", sans-serif;
+            font-size: 48vw; 
+            font-weight: 100; 
+            line-height: 1; 
             display: inline-block;
-            letter-spacing: -2px;
+            letter-spacing: -2px; /* 适当紧凑 */
             word-break: keep-all;
         }
 
         @media screen and (orientation: landscape) {
-            #clock { font-size: 75vh; }
+            #clock { font-size: 85vh; }
         }
 
-        /* 按钮通用样式 */
+        /* 按钮样式 */
         .btn {
             position: absolute; width: 60px; height: 60px;
             line-height: 55px; background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; 
             border-radius: 50%; text-align: center; z-index: 100;
-            display: none; font-weight: bold; -ms-user-select: none;
+            display: none; -ms-user-select: none;
         }
         #btn-minus { bottom: 10%; left: 8%; font-size: 40px; }
         #btn-plus { bottom: 10%; right: 8%; font-size: 40px; }
-        /* 字体切换按钮放在顶部中央 */
         #btn-font { top: 10%; left: 50%; margin-left: -30px; font-size: 20px; line-height: 60px; }
     </style>
 </head>
@@ -57,21 +56,21 @@
     <script type="text/javascript">
         var clockEl = document.getElementById("clock");
         var btns = document.getElementsByClassName("btn");
-        var currentSize = 45;
+        var currentSize = 48;
         var timer = null;
 
-        // 定义四种适合 Lumia 屏幕的字体组合
+        // 预设几种细体和修长的系统字体
         var fonts = [
-            '"Segoe UI Black", sans-serif',      // 1. 极致粗体 (最撑满)
-            '"Consolas", monospace',             // 2. 复古等宽 (最整齐)
-            '"Arial Black", sans-serif',         // 3. 经典厚重 (最稳健)
-            '"Segoe WP Semibold", sans-serif'    // 4. 磁贴风格 (最原生)
+            '"Segoe UI Light", sans-serif',
+            '"Segoe UI Semilight", sans-serif',
+            '"Calibri Light", sans-serif'
         ];
         var fontIndex = 0;
 
         function updateTime() {
             var now = new Date();
             var h = now.getHours(), m = now.getMinutes();
+            // 使用标准半角冒号
             clockEl.innerText = (h < 10 ? "0"+h : h) + ":" + (m < 10 ? "0"+m : m);
         }
 
