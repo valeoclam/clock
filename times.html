@@ -1,56 +1,89 @@
-<script type="text/javascript">
-    var clockEl = document.getElementById("clock");
-    var currentFontSize = 30; // 初始 vw 值
-    var lastDist = 0;
-
-    function updateTime() {
-        var now = new Date();
-        var h = now.getHours();
-        var m = now.getMinutes();
-        h = h < 10 ? "0" + h : h;
-        m = m < 10 ? "0" + m : m;
-        clockEl.innerText = h + ":" + m;
-    }
-
-    // 处理触摸缩放
-    document.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 2) {
-            // 计算两个手指间的距离
-            var dist = Math.sqrt(
-                Math.pow(e.touches[0].pageX - e.touches[1].pageX, 2) +
-                Math.pow(e.touches[0].pageY - e.touches[1].pageY, 2)
-            );
-
-            if (lastDist > 0) {
-                // 根据距离变化调整字体大小
-                var delta = (dist - lastDist) / 10;
-                currentFontSize += delta;
-                
-                // 限制最小和最大尺寸
-                if (currentFontSize < 10) currentFontSize = 10;
-                if (currentFontSize > 90) currentFontSize = 90;
-                
-                clockEl.style.fontSize = currentFontSize + "vw";
-            }
-            lastDist = dist;
-            e.preventDefault(); // 阻止浏览器默认缩放行为
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumia Stable Clock</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000000; color: #ffffff;
+            overflow: hidden; font-family: "Segoe UI", sans-serif;
         }
-    }, { passive: false });
+        .flex-container { display: table; width: 100%; height: 100%; }
+        .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
+        #clock {
+            font-size: 35vw; /* 初始大小 */
+            font-weight: bold;
+            line-height: 1;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        /* 横屏适配 */
+        @media screen and (orientation: landscape) {
+            #clock { font-size: 45vh; }
+        }
+    </style>
+</head>
+<body>
 
-    document.addEventListener('touchend', function(e) {
-        lastDist = 0; // 手指离开时重置距离记录
-    });
+    <div class="flex-container">
+        <div class="clock-wrapper">
+            <div id="clock">00:00</div>
+        </div>
+    </div>
 
-    // 初始点击切换功能保留
-    function toggleSize() {
-        currentFontSize = (currentFontSize === 30) ? 45 : 30;
-        clockEl.style.fontSize = currentFontSize + (window.innerWidth > window.innerHeight ? "vh" : "vw");
-    }
+    <script type="text/javascript">
+        var clockEl = document.getElementById("clock");
+        var baseFontSize = 35; // 基础大小数值
+        var lastDist = 0;
 
-    setInterval(updateTime, 1000);
-    updateTime();
+        function updateTime() {
+            var now = new Date();
+            var h = now.getHours();
+            var m = now.getMinutes();
+            h = h < 10 ? "0" + h : h;
+            m = m < 10 ? "0" + m : m;
+            clockEl.innerText = h + ":" + m;
+        }
 
-    window.onresize = function() {
+        // 兼容 IE11 的触摸事件处理
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches && e.touches.length === 2) {
+                // 阻止浏览器默认缩放
+                if(e.preventDefault) e.preventDefault();
+
+                var dx = e.touches[0].pageX - e.touches[1].pageX;
+                var dy = e.touches[0].pageY - e.touches[1].pageY;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (lastDist > 0) {
+                    var diff = dist - lastDist;
+                    // 缩放灵敏度系数
+                    baseFontSize += diff * 0.1;
+                    
+                    // 限制范围
+                    if (baseFontSize < 10) baseFontSize = 10;
+                    if (baseFontSize > 95) baseFontSize = 95;
+
+                    // 判断横竖屏应用单位
+                    var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
+                    clockEl.style.fontSize = baseFontSize + unit;
+                }
+                lastDist = dist;
+            }
+        }, false);
+
+        document.addEventListener('touchend', function() {
+            lastDist = 0;
+        }, false);
+
+        // 初始化
+        setInterval(updateTime, 1000);
         updateTime();
-    };
-</script>
+
+        // 窗口旋转时重置
+        window.onresize = function() { updateTime(); };
+    </script>
+</body>
+</html>
