@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo Legacy</title>
+    <title>Fliqlo Universal</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000; overflow: hidden;
-        }
-        /* 增加点击背景层，适配旧版 Safari 点击事件 */
-        #bg-tap {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+            -webkit-user-select: none; user-select: none;
         }
         #main-container {
             display: table; width: 100%; height: 100%;
-            position: relative; z-index: 5;
+            position: relative; top: 0px; left: 0px; z-index: 5;
         }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
 
@@ -23,6 +20,7 @@
             display: inline-block; background-color: #1a1a1a;
             border-radius: 6px; width: 22vw; height: 60vw;
             margin: 0 1%; position: relative; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
 
         .num-text {
@@ -30,9 +28,7 @@
             top: 0; left: 0; color: #dcdcdc;
             font-family: "Impact", "HelveticaNeue-CondensedBold", sans-serif;
             font-size: 50vw; line-height: 60vw; text-align: center;
-            /* 针对旧版 Safari 的前缀 */
-            -webkit-transform: scaleX(0.75);
-            transform: scaleX(0.75);
+            -webkit-transform: scaleX(0.75); transform: scaleX(0.75);
         }
 
         .card:after {
@@ -41,24 +37,23 @@
             z-index: 10; margin-top: -1px;
         }
 
-        /* 强化控制面板：确保在所有设备最顶层 */
+        /* 强制置顶控制面板 */
         #ctrl-panel {
-            position: absolute; bottom: 5%; left: 0; width: 100%;
-            text-align: center; z-index: 999; display: none;
+            position: fixed !important; 
+            bottom: 5%; left: 0; width: 100%;
+            text-align: center; z-index: 999999 !important; 
+            display: none;
         }
         .btn {
-            display: inline-block; width: 42px; height: 38px;
-            line-height: 38px; background: #333;
+            display: inline-block; width: 45px; height: 40px;
+            line-height: 40px; background: #2c2c2c;
             border: 1px solid #666; color: #fff; border-radius: 4px;
-            margin: 3px; font-size: 12px;
-            /* 解决 Safari 按钮默认样式 */
+            margin: 4px; font-size: 13px; font-family: sans-serif;
             -webkit-appearance: none;
         }
     </style>
 </head>
-<body>
-
-    <div id="bg-tap" onclick="toggleControls()"></div>
+<body id="body">
 
     <div id="main-container">
         <div class="clock-wrapper">
@@ -86,24 +81,24 @@
     </div>
 
     <script type="text/javascript">
-        // 使用非常传统的变量声明，确保 IE11 和 旧版 Safari 不报错
-        var defaultConfig = { size: 50, width: 22, height: 60, x: 0, y: 0, offset: 0, wIndex: 2 };
-        var state = {};
+        var state = { size: 50, width: 22, height: 60, x: 0, y: 0, offset: 0, wIndex: 2 };
         var weights = [100, 400, 700, 900];
 
         function loadSettings() {
-            var saved = localStorage.getItem('fliqlo_v3');
-            if (saved) {
-                state = JSON.parse(saved);
-            } else {
-                // 深度复制默认对象
-                state = { size: 50, width: 22, height: 60, x: 0, y: 0, offset: 0, wIndex: 2 };
-            }
+            try {
+                var saved = localStorage.getItem('fliqlo_v4');
+                if (saved) {
+                    var parsed = JSON.parse(saved);
+                    for (var key in parsed) { state[key] = parsed[key]; }
+                }
+            } catch (e) {}
             applyAll();
         }
 
         function saveSettings() {
-            localStorage.setItem('fliqlo_v3', JSON.stringify(state));
+            try {
+                localStorage.setItem('fliqlo_v4', JSON.stringify(state));
+            } catch (e) {}
         }
 
         function updateTime() {
@@ -117,27 +112,23 @@
         }
 
         function adj(type, val) {
-            // 兼容性停止冒泡
-            if(window.event) window.event.cancelBubble = true;
+            if(window.event) window.event.stopPropagation();
             state[type] += val;
             applyAll();
             saveSettings();
         }
 
         function changeWeight() {
-            if(window.event) window.event.cancelBubble = true;
+            if(window.event) window.event.stopPropagation();
             state.wIndex = (state.wIndex + 1) % weights.length;
             applyAll();
             saveSettings();
         }
 
         function applyAll() {
-            var isLand = window.innerWidth > window.innerHeight;
-            var unit = isLand ? "vh" : "vw";
+            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
             var cards = document.getElementsByClassName("card");
             var nums = document.getElementsByClassName("num-text");
-            var container = document.getElementById("main-container");
-
             for(var i=0; i<4; i++) {
                 cards[i].style.width = state.width + unit;
                 cards[i].style.height = state.height + unit;
@@ -146,26 +137,31 @@
                 nums[i].style.left = state.offset + "px";
                 nums[i].style.fontWeight = weights[state.wIndex];
             }
-            container.style.top = state.y + "px";
+            document.getElementById("main-container").style.top = state.y + "px";
         }
 
         function resetConfig() {
-            if(window.event) window.event.cancelBubble = true;
-            if(confirm("恢复默认？")) {
-                localStorage.removeItem('fliqlo_v3');
-                window.location.reload();
-            }
+            if(window.event) window.event.stopPropagation();
+            localStorage.removeItem('fliqlo_v4');
+            window.location.reload();
         }
 
-        function toggleControls() {
+        // 统一点击唤起函数
+        function toggleControls(e) {
             var p = document.getElementById("ctrl-panel");
+            // 如果点击的是按钮本身，不关闭面板
+            if (e.target.className.indexOf('btn') !== -1) return;
             p.style.display = (p.style.display == "block") ? "none" : "block";
         }
 
-        // 初始化加载
-        loadSettings();
-        setInterval(updateTime, 1000);
-        updateTime();
+        // 绑定到 window 确保 Safari 捕获点击
+        window.onclick = toggleControls;
+
+        window.onload = function() {
+            loadSettings();
+            setInterval(updateTime, 1000);
+            updateTime();
+        };
     </script>
 </body>
 </html>
