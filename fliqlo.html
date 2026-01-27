@@ -2,104 +2,167 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo WP</title>
+    <title>Fliqlo Persistence Pro</title>
     <style>
         body, html {
-            background-color: #000000;
-            color: #FFFFFF;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: "Segoe UI", "Helvetica Neue", Sans-Serif;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden; -ms-touch-action: none;
         }
-
-        /* 放弃 Flexbox，改用绝对定位居中，这是 IE11 最稳的方法 */
-        .wrapper {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 90%;
-            height: 50%;
-            margin-top: -25%; /* 高度的一半 */
-            margin-left: -45%; /* 宽度的一半 */
-            text-align: center;
+        #main-container {
+            display: table; width: 100%; height: 100%;
+            position: relative; top: 0px; left: 0px;
         }
+        .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
 
         .card {
             display: inline-block;
-            position: relative;
-            background: #222222;
-            width: 45%;
-            height: 100%;
-            border-radius: 5px;
+            background-color: #1a1a1a;
+            border-radius: 6px;
+            width: 22vw; height: 65vw;
             margin: 0 1%;
+            position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
         }
 
-        .number {
-            font-size: 30vw;
-            font-weight: bold;
-            line-height: 1.6; /* 针对 IE 的行高微调 */
-            display: block;
-        }
-
-        /* 模拟 Fliqlo 的中间缝隙 */
-        .line {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: #000;
-            z-index: 10;
-        }
-
-        #hint {
-            position: fixed;
-            bottom: 5px;
-            width: 100%;
+        .num-text {
+            position: absolute; width: 100%; height: 100%;
+            top: 0; left: 0px;
+            color: #dcdcdc;
+            font-family: "Impact", "Segoe UI Black", sans-serif;
+            font-size: 55vw; 
+            line-height: 65vw;
             text-align: center;
-            color: #333;
-            font-size: 10px;
+            transform: scaleX(0.75); -ms-transform: scaleX(0.75);
+        }
+
+        .card::after {
+            content: ""; position: absolute; top: 50%; left: 0;
+            width: 100%; height: 2px; background: #000;
+            z-index: 10; margin-top: -1px;
+        }
+
+        .controls {
+            position: fixed; bottom: 3%; left: 0; width: 100%;
+            text-align: center; z-index: 1000; display: none;
+        }
+        .btn {
+            display: inline-block; width: 45px; height: 40px;
+            line-height: 40px; background: rgba(40,40,40,0.9);
+            border: 1px solid #666; color: #fff; border-radius: 4px;
+            margin: 2px; font-size: 13px; font-family: "Segoe UI", sans-serif;
         }
     </style>
 </head>
-<body>
+<body onclick="toggleControls()">
 
-    <div class="wrapper">
-        <div class="card">
-            <div class="line"></div>
-            <span class="number" id="h">00</span>
-        </div>
-        <div class="card">
-            <div class="line"></div>
-            <span class="number" id="m">00</span>
+    <div id="main-container">
+        <div class="clock-wrapper">
+            <div class="card"><div class="num-text" id="h1">0</div></div>
+            <div class="card"><div class="num-text" id="h2">0</div></div>
+            <div class="card"><div class="num-text" id="m1">0</div></div>
+            <div class="card"><div class="num-text" id="m2">0</div></div>
         </div>
     </div>
 
-    <div id="hint">Lumia 635 兼容模式</div>
+    <div id="ctrl-panel" class="controls">
+        <div class="btn" onclick="adj('size', 2)">字+</div>
+        <div class="btn" onclick="adj('size', -2)">字-</div>
+        <div class="btn" onclick="adj('width', 2)">宽+</div>
+        <div class="btn" onclick="adj('width', -2)">宽-</div>
+        <div class="btn" onclick="adj('height', 2)">高+</div>
+        <div class="btn" onclick="adj('height', -2)">高-</div>
+        <br>
+        <div class="btn" onclick="adj('offset', -2)">字←</div>
+        <div class="btn" onclick="adj('offset', 2)">字→</div>
+        <div class="btn" onclick="changeWeight()">粗/细</div>
+        <div class="btn" onclick="adj('y', -10)">屏↑</div>
+        <div class="btn" onclick="adj('y', 10)">屏↓</div>
+        <div class="btn" onclick="resetConfig()" style="background:#b33">重置</div>
+    </div>
 
-    <script>
-        function update() {
-            var d = new Date();
-            var h = d.getHours();
-            var m = d.getMinutes();
-            if(h < 10) h = '0' + h;
-            if(m < 10) m = '0' + m;
-            
-            // 使用最基础的 innerText 确保兼容
-            document.getElementById('h').innerText = h;
-            document.getElementById('m').innerText = m;
+    <script type="text/javascript">
+        // 默认配置
+        var defaultConfig = { size: 55, width: 22, height: 65, x: 0, y: 0, offset: 0, wIndex: 2 };
+        var state = {};
+        var weights = [100, 400, 700, 900];
+
+        // 1. 加载保存的设置
+        function loadSettings() {
+            var saved = localStorage.getItem('fliqlo_config');
+            if (saved) {
+                state = JSON.parse(saved);
+            } else {
+                // 如果没有保存过，使用默认值
+                state = JSON.parse(JSON.stringify(defaultConfig));
+            }
+            applyAll();
         }
 
-        // IE11 需要先确保 DOM 加载
+        // 2. 保存设置到本地
+        function saveSettings() {
+            localStorage.setItem('fliqlo_config', JSON.stringify(state));
+        }
+
+        function updateTime() {
+            var now = new Date();
+            var h = ("0"+now.getHours()).slice(-2), m = ("0"+now.getMinutes()).slice(-2);
+            document.getElementById("h1").innerText = h.charAt(0);
+            document.getElementById("h2").innerText = h.charAt(1);
+            document.getElementById("m1").innerText = m.charAt(0);
+            document.getElementById("m2").innerText = m.charAt(1);
+        }
+
+        function adj(type, val) {
+            event.stopPropagation();
+            state[type] += val;
+            applyAll();
+            saveSettings(); // 每次调整后自动保存
+        }
+
+        function changeWeight() {
+            event.stopPropagation();
+            state.wIndex = (state.wIndex + 1) % weights.length;
+            applyAll();
+            saveSettings();
+        }
+
+        function applyAll() {
+            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
+            var cards = document.getElementsByClassName("card");
+            var nums = document.getElementsByClassName("num-text");
+            var container = document.getElementById("main-container");
+
+            for(var i=0; i<4; i++) {
+                cards[i].style.width = state.width + unit;
+                cards[i].style.height = state.height + unit;
+                nums[i].style.fontSize = state.size + unit;
+                nums[i].style.lineHeight = state.height + unit;
+                nums[i].style.left = state.offset + "px";
+                nums[i].style.fontWeight = weights[state.wIndex];
+            }
+            container.style.top = state.y + "px";
+        }
+
+        function resetConfig() {
+            event.stopPropagation();
+            if(confirm("确定要恢复默认设置吗？")) {
+                localStorage.removeItem('fliqlo_config');
+                location.reload();
+            }
+        }
+
+        function toggleControls() {
+            var p = document.getElementById("ctrl-panel");
+            p.style.display = (p.style.display == "block") ? "none" : "block";
+        }
+
+        // 初始化
         window.onload = function() {
-            setInterval(update, 1000);
-            update();
+            loadSettings();
+            setInterval(updateTime, 1000);
+            updateTime();
         };
     </script>
 </body>
