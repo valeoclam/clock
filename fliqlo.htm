@@ -3,59 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo Lumia</title>
+    <title>Fliqlo Fix</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000000; color: #dcdcdc;
+            background-color: #000; color: #E5E5E5;
             overflow: hidden; -ms-touch-action: none;
+            font-family: "Impact", "Segoe UI Black", sans-serif;
         }
-        .container { display: table; width: 100%; height: 100%; position: relative; }
+        .container { display: table; width: 100%; height: 100%; }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
-        
-        /* 模拟 Fliqlo 的卡片样式 */
+
+        /* 单个数字卡片槽 */
         .card {
             display: inline-block;
-            background-color: #1c1c1c; /* 卡片深灰色 */
-            border-radius: 8px;
-            margin: 0 5px;
-            padding: 10px 5px;
+            background-color: #1a1a1a;
+            border-radius: 4px;
+            width: 20%;      /* 四个卡片，每个约20% */
+            margin: 0 1%;    /* 留出间隙 */
+            padding: 10px 0;
             position: relative;
-            /* 使用 Impact 模拟 Fliqlo 的粗体 */
-            font-family: "Impact", "Segoe UI Bold", sans-serif;
-            font-size: 38vw; 
-            line-height: 1.1;
-            width: 42vw;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-size: 35vw; /* 调整字号 */
+            line-height: 1.2;
+            text-align: center;
         }
 
-        /* 中间的分割线 */
+        /* 中间分割线 */
         .card::after {
             content: "";
             position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: #000; /* 黑色分割线 */
-            margin-top: -1px;
-            z-index: 10;
+            top: 50%; left: 0;
+            width: 100%; height: 1px;
+            background: #000;
+            z-index: 5;
         }
 
+        /* 针对 Lumia 横屏优化 */
         @media screen and (orientation: landscape) {
-            .card { font-size: 70vh; width: 42vh; }
+            .card { font-size: 70vh; width: 22vh; margin: 0 1vh; }
         }
 
-        /* 按钮样式保持不变 */
         .btn {
-            position: absolute; width: 55px; height: 55px;
-            line-height: 52px; background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; 
+            position: absolute; width: 50px; height: 50px;
+            line-height: 50px; background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #444; color: #fff; 
             border-radius: 50%; text-align: center; z-index: 100;
-            display: none; -ms-user-select: none; font-family: "Segoe UI", sans-serif;
+            display: none; font-family: "Segoe UI", sans-serif;
         }
-        #btn-minus { bottom: 10%; left: 5%; font-size: 35px; }
-        #btn-plus { bottom: 10%; right: 5%; font-size: 35px; }
+        #btn-minus { bottom: 5%; left: 5%; }
+        #btn-plus { bottom: 5%; right: 5%; }
     </style>
 </head>
 <body onclick="showControls()">
@@ -65,23 +61,30 @@
         <div id="btn-plus" class="btn" onclick="changeSize(2); event.stopPropagation();">+</div>
         
         <div class="clock-wrapper">
-            <div class="card" id="h-card">00</div>
-            <div class="card" id="m-card">00</div>
+            <div class="card" id="h1">0</div><div class="card" id="h2">0</div>
+            <span style="font-size: 10vw; vertical-align: middle; opacity: 0.5;"> </span>
+            <div class="card" id="m1">0</div><div class="card" id="m2">0</div>
         </div>
     </div>
 
     <script type="text/javascript">
-        var hEl = document.getElementById("h-card");
-        var mEl = document.getElementById("m-card");
+        var cards = ["h1", "h2", "m1", "m2"];
         var btns = document.getElementsByClassName("btn");
-        var currentSize = 38;
+        var currentSize = 35;
         var timer = null;
 
         function updateTime() {
             var now = new Date();
-            var h = now.getHours(), m = now.getMinutes();
-            hEl.innerText = (h < 10 ? "0"+h : h);
-            mEl.innerText = (m < 10 ? "0"+m : m);
+            var h = now.getHours().toString();
+            var m = now.getMinutes().toString();
+            
+            if (h.length < 2) h = "0" + h;
+            if (m.length < 2) m = "0" + m;
+
+            document.getElementById("h1").innerText = h.charAt(0);
+            document.getElementById("h2").innerText = h.charAt(1);
+            document.getElementById("m1").innerText = m.charAt(0);
+            document.getElementById("m2").innerText = m.charAt(1);
         }
 
         function showControls() {
@@ -89,23 +92,21 @@
             if (timer) clearTimeout(timer);
             timer = setTimeout(function() {
                 for(var i=0; i<btns.length; i++) btns[i].style.display = "none";
-            }, 5000);
+            }, 4000);
         }
 
         function changeSize(delta) {
             currentSize += delta;
-            if (currentSize < 10) currentSize = 10;
             var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
-            hEl.style.fontSize = currentSize + unit;
-            mEl.style.fontSize = currentSize + unit;
-            hEl.style.width = (currentSize + 4) + unit;
-            mEl.style.width = (currentSize + 4) + unit;
+            for(var i=0; i<cards.length; i++) {
+                var el = document.getElementById(cards[i]);
+                el.style.fontSize = currentSize + unit;
+                el.style.width = (window.innerWidth > window.innerHeight) ? (currentSize*0.6) + "vh" : "20%";
+            }
         }
 
         setInterval(updateTime, 1000);
         updateTime();
-        
-        window.onresize = function() { updateTime(); };
     </script>
 </body>
 </html>
