@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fliqlo WP</title>
+    <style>
+        body, html {
+            background-color: #000000;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: "Segoe UI", "Helvetica Neue", Sans-Serif;
+        }
+
+        /* 放弃 Flexbox，改用绝对定位居中，这是 IE11 最稳的方法 */
+        .wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            height: 50%;
+            margin-top: -25%; /* 高度的一半 */
+            margin-left: -45%; /* 宽度的一半 */
+            text-align: center;
+        }
+
+        .card {
+            display: inline-block;
+            position: relative;
+            background: #222222;
+            width: 45%;
+            height: 100%;
+            border-radius: 5px;
+            margin: 0 1%;
+            overflow: hidden;
+        }
+
+        .number {
+            font-size: 30vw;
+            font-weight: bold;
+            line-height: 1.6; /* 针对 IE 的行高微调 */
+            display: block;
+        }
+
+        /* 模拟 Fliqlo 的中间缝隙 */
+        .line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #000;
+            z-index: 10;
+        }
+
+        #hint {
+            position: fixed;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="card">
+            <div class="line"></div>
+            <span class="number" id="h">00</span>
+        </div>
+        <div class="card">
+            <div class="line"></div>
+            <span class="number" id="m">00</span>
+        </div>
+    </div>
+
+    <div id="hint">Lumia 635 兼容模式</div>
+
+    <script>
+        function update() {
+            var d = new Date();
+            var h = d.getHours();
+            var m = d.getMinutes();
+            if(h < 10) h = '0' + h;
+            if(m < 10) m = '0' + m;
+            
+            // 使用最基础的 innerText 确保兼容
+            document.getElementById('h').innerText = h;
+            document.getElementById('m').innerText = m;
+        }
+
+        // IE11 需要先确保 DOM 加载
+        window.onload = function() {
+            setInterval(update, 1000);
+            update();
+        };
+    </script>
+</body>
+</html>
