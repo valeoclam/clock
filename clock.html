@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo Universal</title>
+    <title>Fliqlo Safari Fix</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000; overflow: hidden;
-            -webkit-user-select: none; user-select: none;
+            /* 解决 Safari 点击高亮色 */
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
         }
+        
         #main-container {
             display: table; width: 100%; height: 100%;
-            position: relative; top: 0px; left: 0px; z-index: 5;
+            position: relative; z-index: 100;
         }
         .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
 
@@ -20,40 +22,45 @@
             display: inline-block; background-color: #1a1a1a;
             border-radius: 6px; width: 22vw; height: 60vw;
             margin: 0 1%; position: relative; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            /* 强制硬件加速以适配 iPhone 4s */
+            -webkit-transform: translateZ(0);
         }
 
         .num-text {
             position: absolute; width: 100%; height: 100%;
             top: 0; left: 0; color: #dcdcdc;
-            font-family: "Impact", "HelveticaNeue-CondensedBold", sans-serif;
+            font-family: "Impact", sans-serif;
             font-size: 50vw; line-height: 60vw; text-align: center;
             -webkit-transform: scaleX(0.75); transform: scaleX(0.75);
         }
 
         .card:after {
             content: ""; position: absolute; top: 50%; left: 0;
-            width: 100%; height: 2px; background: #000;
-            z-index: 10; margin-top: -1px;
+            width: 100%; height: 2px; background: #000; z-index: 10;
         }
 
-        /* 强制置顶控制面板 */
+        /* 控制面板：针对 Safari 强化的样式 */
         #ctrl-panel {
             position: fixed !important; 
-            bottom: 5%; left: 0; width: 100%;
-            text-align: center; z-index: 999999 !important; 
+            bottom: 30px; left: 0; width: 100%;
+            text-align: center; 
+            z-index: 2147483647 !important; /* 最高的层级 */
             display: none;
+            background: rgba(0,0,0,0.6); /* 稍微加点背景方便看清 */
+            padding: 10px 0;
         }
+        
         .btn {
             display: inline-block; width: 45px; height: 40px;
-            line-height: 40px; background: #2c2c2c;
-            border: 1px solid #666; color: #fff; border-radius: 4px;
+            line-height: 40px; background: #333;
+            border: 1px solid #777; color: #fff; border-radius: 4px;
             margin: 4px; font-size: 13px; font-family: sans-serif;
-            -webkit-appearance: none;
+            -webkit-appearance: none; /* 禁用系统默认按钮样式 */
+            cursor: pointer;
         }
     </style>
 </head>
-<body id="body">
+<body id="page-body">
 
     <div id="main-container">
         <div class="clock-wrapper">
@@ -86,7 +93,7 @@
 
         function loadSettings() {
             try {
-                var saved = localStorage.getItem('fliqlo_v4');
+                var saved = localStorage.getItem('fliqlo_final_v1');
                 if (saved) {
                     var parsed = JSON.parse(saved);
                     for (var key in parsed) { state[key] = parsed[key]; }
@@ -97,7 +104,7 @@
 
         function saveSettings() {
             try {
-                localStorage.setItem('fliqlo_v4', JSON.stringify(state));
+                localStorage.setItem('fliqlo_final_v1', JSON.stringify(state));
             } catch (e) {}
         }
 
@@ -105,21 +112,22 @@
             var now = new Date();
             var h = ("0" + now.getHours()).slice(-2);
             var m = ("0" + now.getMinutes()).slice(-2);
-            document.getElementById("h1").innerHTML = h.charAt(0);
-            document.getElementById("h2").innerHTML = h.charAt(1);
-            document.getElementById("m1").innerHTML = m.charAt(0);
-            document.getElementById("m2").innerHTML = m.charAt(1);
+            document.getElementById("h1").innerText = h.charAt(0);
+            document.getElementById("h2").innerText = h.charAt(1);
+            document.getElementById("m1").innerText = m.charAt(0);
+            document.getElementById("m2").innerText = m.charAt(1);
         }
 
         function adj(type, val) {
-            if(window.event) window.event.stopPropagation();
+            // 禁止事件向上传递
+            if(window.event) window.event.cancelBubble = true;
             state[type] += val;
             applyAll();
             saveSettings();
         }
 
         function changeWeight() {
-            if(window.event) window.event.stopPropagation();
+            if(window.event) window.event.cancelBubble = true;
             state.wIndex = (state.wIndex + 1) % weights.length;
             applyAll();
             saveSettings();
@@ -141,21 +149,36 @@
         }
 
         function resetConfig() {
-            if(window.event) window.event.stopPropagation();
-            localStorage.removeItem('fliqlo_v4');
+            if(window.event) window.event.cancelBubble = true;
+            localStorage.removeItem('fliqlo_final_v1');
             window.location.reload();
         }
 
-        // 统一点击唤起函数
-        function toggleControls(e) {
+        // 统一唤起/隐藏面板
+        function handleMenu(e) {
             var p = document.getElementById("ctrl-panel");
-            // 如果点击的是按钮本身，不关闭面板
-            if (e.target.className.indexOf('btn') !== -1) return;
-            p.style.display = (p.style.display == "block") ? "none" : "block";
+            var target = e.target || e.srcElement;
+            // 如果点到按钮了，不隐藏
+            if (target.className.indexOf('btn') !== -1) return;
+            
+            p.style.display = (p.style.display === "block") ? "none" : "block";
         }
 
-        // 绑定到 window 确保 Safari 捕获点击
-        window.onclick = toggleControls;
+        // 同时监听 Click 和 TouchStart 以适配 Safari
+        document.addEventListener('touchstart', function(e) {
+            // 防止双击缩放干扰
+            if (e.touches.length > 1) return;
+            // 处理逻辑
+            var target = e.target;
+            if (target.className.indexOf('btn') === -1) {
+                handleMenu(e);
+            }
+        }, false);
+
+        // PC端保留 click
+        document.addEventListener('click', function(e) {
+            handleMenu(e);
+        }, false);
 
         window.onload = function() {
             loadSettings();
