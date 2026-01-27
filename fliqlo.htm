@@ -3,71 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo Final</title>
+    <title>Fliqlo Ultra</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000; color: #ddd;
-            overflow: hidden; -ms-touch-action: none;
+            background-color: #000; overflow: hidden; -ms-touch-action: none;
         }
         .container { display: table; width: 100%; height: 100%; }
-        .clock-wrapper { 
-            display: table-cell; 
-            vertical-align: middle; 
-            text-align: center; 
-            padding: 0 5px;
-        }
+        .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
 
-        /* 核心改进：限制容器，防止溢出 */
+        /* 卡片容器 */
         .card {
             display: inline-block;
             background-color: #1a1a1a;
             border-radius: 6px;
-            width: 21%;          /* 严格限制宽度 */
-            height: 60vw;        /* 竖屏高度 */
-            margin: 0 1%;
+            width: 20%;          /* 容器宽度占屏幕1/5 */
+            height: 65vw;        /* 竖屏高度 */
+            margin: 0 1.5%;
             position: relative;
-            overflow: hidden;    /* 必须：切掉超出方框的文字 */
-            
-            /* 字体调整：使用较小的字号，预留边缘 */
-            font-family: "Impact", sans-serif;
-            font-size: 50vw;     
-            line-height: 60vw;   /* 与高度一致实现垂直居中 */
-            text-align: center;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
         }
 
-        /* 中间缝隙：稍微加粗，更有翻页感 */
+        /* 数字层：关键在于 scaleX 压缩 */
+        .num-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+            color: #dcdcdc;
+            font-family: "Impact", sans-serif;
+            font-size: 55vw; 
+            line-height: 65vw;
+            text-align: center;
+            /* 强制将数字宽度压缩到原来的 0.7 倍，实现瘦长感 */
+            transform: scaleX(0.7);
+            -ms-transform: scaleX(0.7); 
+        }
+
+        /* 中间缝隙 */
         .card::after {
             content: "";
             position: absolute;
             top: 50%; left: 0;
-            width: 100%; height: 3px;
+            width: 100%; height: 2px;
             background: #000;
             z-index: 10;
             margin-top: -1px;
+            opacity: 0.8;
         }
 
-        /* 横屏模式：Lumia 635 这种屏幕在横屏下效果最好 */
+        /* 横屏模式优化 */
         @media screen and (orientation: landscape) {
-            .card { 
-                width: 20vh; 
-                height: 65vh; 
-                font-size: 55vh; 
-                line-height: 65vh; 
-                margin: 0 1.5vh;
-            }
+            .card { width: 18vh; height: 60vh; margin: 0 1.5vh; }
+            .num-text { font-size: 52vh; line-height: 60vh; }
         }
 
-        /* 控制按钮 */
+        /* 调试按钮 */
         .btn {
-            position: absolute; width: 45px; height: 45px;
-            line-height: 45px; background: rgba(50, 50, 50, 0.5);
-            border: 1px solid #555; color: #fff; 
+            position: absolute; width: 40px; height: 40px;
+            line-height: 40px; background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333; color: #666; 
             border-radius: 50%; text-align: center; z-index: 100;
-            display: none; font-size: 20px;
+            display: none; font-size: 16px;
         }
-        #btn-minus { bottom: 8%; left: 8%; }
-        #btn-plus { bottom: 8%; right: 8%; }
+        #btn-minus { bottom: 5%; left: 5%; }
+        #btn-plus { bottom: 5%; right: 5%; }
     </style>
 </head>
 <body onclick="showControls()">
@@ -77,17 +78,17 @@
         <div id="btn-plus" class="btn" onclick="changeSize(2); event.stopPropagation();">+</div>
         
         <div class="clock-wrapper">
-            <div class="card" id="h1">0</div>
-            <div class="card" id="h2">0</div>
-            <div class="card" id="m1">0</div>
-            <div class="card" id="m2">0</div>
+            <div class="card"><div class="num-text" id="h1">0</div></div>
+            <div class="card"><div class="num-text" id="h2">0</div></div>
+            <div class="card"><div class="num-text" id="m1">0</div></div>
+            <div class="card"><div class="num-text" id="m2">0</div></div>
         </div>
     </div>
 
     <script type="text/javascript">
-        var cards = ["h1", "h2", "m1", "m2"];
+        var ids = ["h1", "h2", "m1", "m2"];
         var btns = document.getElementsByClassName("btn");
-        var currentSize = 50; // 这里的单位是vw/vh
+        var currentSize = 55;
         var timer = null;
 
         function updateTime() {
@@ -107,18 +108,15 @@
             if (timer) clearTimeout(timer);
             timer = setTimeout(function() {
                 for(var i=0; i<btns.length; i++) btns[i].style.display = "none";
-            }, 4000);
+            }, 3000);
         }
 
         function changeSize(delta) {
             currentSize += delta;
             var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
-            for(var i=0; i<cards.length; i++) {
-                var el = document.getElementById(cards[i]);
+            for(var i=0; i<ids.length; i++) {
+                var el = document.getElementById(ids[i]);
                 el.style.fontSize = currentSize + unit;
-                // 同时微调高度以适配字号
-                el.style.height = (currentSize + 10) + unit;
-                el.style.lineHeight = (currentSize + 10) + unit;
             }
         }
 
