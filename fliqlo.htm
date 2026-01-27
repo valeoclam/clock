@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo Pro Custom</title>
+    <title>Fliqlo Persistence Pro</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -28,13 +28,12 @@
 
         .num-text {
             position: absolute; width: 100%; height: 100%;
-            top: 0; left: 0px; /* 初始偏移 */
+            top: 0; left: 0px;
             color: #dcdcdc;
             font-family: "Impact", "Segoe UI Black", sans-serif;
             font-size: 55vw; 
             line-height: 65vw;
             text-align: center;
-            font-weight: 800; /* 初始加粗 */
             transform: scaleX(0.75); -ms-transform: scaleX(0.75);
         }
 
@@ -44,7 +43,6 @@
             z-index: 10; margin-top: -1px;
         }
 
-        /* 控制面板优化：多行显示 */
         .controls {
             position: fixed; bottom: 3%; left: 0; width: 100%;
             text-align: center; z-index: 1000; display: none;
@@ -55,7 +53,6 @@
             border: 1px solid #666; color: #fff; border-radius: 4px;
             margin: 2px; font-size: 13px; font-family: "Segoe UI", sans-serif;
         }
-        .btn-active { background: #555; border-color: #fff; }
     </style>
 </head>
 <body onclick="toggleControls()">
@@ -82,13 +79,31 @@
         <div class="btn" onclick="changeWeight()">粗/细</div>
         <div class="btn" onclick="adj('y', -10)">屏↑</div>
         <div class="btn" onclick="adj('y', 10)">屏↓</div>
-        <div class="btn" onclick="location.reload()" style="background:#b33">重置</div>
+        <div class="btn" onclick="resetConfig()" style="background:#b33">重置</div>
     </div>
 
     <script type="text/javascript">
-        var state = { size: 55, width: 22, height: 65, x: 0, y: 0, offset: 0, weight: 800 };
+        // 默认配置
+        var defaultConfig = { size: 55, width: 22, height: 65, x: 0, y: 0, offset: 0, wIndex: 2 };
+        var state = {};
         var weights = [100, 400, 700, 900];
-        var wIndex = 2;
+
+        // 1. 加载保存的设置
+        function loadSettings() {
+            var saved = localStorage.getItem('fliqlo_config');
+            if (saved) {
+                state = JSON.parse(saved);
+            } else {
+                // 如果没有保存过，使用默认值
+                state = JSON.parse(JSON.stringify(defaultConfig));
+            }
+            applyAll();
+        }
+
+        // 2. 保存设置到本地
+        function saveSettings() {
+            localStorage.setItem('fliqlo_config', JSON.stringify(state));
+        }
 
         function updateTime() {
             var now = new Date();
@@ -102,8 +117,19 @@
         function adj(type, val) {
             event.stopPropagation();
             state[type] += val;
+            applyAll();
+            saveSettings(); // 每次调整后自动保存
+        }
+
+        function changeWeight() {
+            event.stopPropagation();
+            state.wIndex = (state.wIndex + 1) % weights.length;
+            applyAll();
+            saveSettings();
+        }
+
+        function applyAll() {
             var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
-            
             var cards = document.getElementsByClassName("card");
             var nums = document.getElementsByClassName("num-text");
             var container = document.getElementById("main-container");
@@ -113,17 +139,17 @@
                 cards[i].style.height = state.height + unit;
                 nums[i].style.fontSize = state.size + unit;
                 nums[i].style.lineHeight = state.height + unit;
-                nums[i].style.left = state.offset + "px"; // 调整文字左右位置
+                nums[i].style.left = state.offset + "px";
+                nums[i].style.fontWeight = weights[state.wIndex];
             }
             container.style.top = state.y + "px";
         }
 
-        function changeWeight() {
+        function resetConfig() {
             event.stopPropagation();
-            wIndex = (wIndex + 1) % weights.length;
-            var nums = document.getElementsByClassName("num-text");
-            for(var i=0; i<4; i++) {
-                nums[i].style.fontWeight = weights[wIndex];
+            if(confirm("确定要恢复默认设置吗？")) {
+                localStorage.removeItem('fliqlo_config');
+                location.reload();
             }
         }
 
@@ -132,8 +158,12 @@
             p.style.display = (p.style.display == "block") ? "none" : "block";
         }
 
-        setInterval(updateTime, 1000);
-        updateTime();
+        // 初始化
+        window.onload = function() {
+            loadSettings();
+            setInterval(updateTime, 1000);
+            updateTime();
+        };
     </script>
 </body>
 </html>
