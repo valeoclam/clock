@@ -2,168 +2,105 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Fliqlo Retro</title>
+    <title>Fliqlo WP</title>
     <style>
-        /* 基础样式：强制全屏黑色背景 */
-        html, body {
+        body, html {
+            background-color: #000000;
+            color: #FFFFFF;
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
-            color: #d1d1d1;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: "Segoe UI", "Helvetica Neue", Sans-Serif;
         }
 
-        /* 兼容 IE11 的 Flexbox 居中 */
-        body {
-            display: -webkit-box;
-            display: -ms-flexbox;
-            display: flex;
-            -webkit-box-pack: center;
-            -ms-flex-pack: center;
-            justify-content: center;
-            -webkit-box-align: center;
-            -ms-flex-align: center;
-            align-items: center;
-        }
-
-        .clock-container {
-            display: -webkit-box;
-            display: -ms-flexbox;
-            display: flex;
+        /* 放弃 Flexbox，改用绝对定位居中，这是 IE11 最稳的方法 */
+        .wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            height: 50%;
+            margin-top: -25%; /* 高度的一半 */
+            margin-left: -45%; /* 宽度的一半 */
             text-align: center;
         }
 
-        /* 卡片设计 */
         .card {
+            display: inline-block;
             position: relative;
-            background: #1a1a1a;
-            border-radius: 8px;
-            margin: 0 10px;
-            width: 40vw;
-            height: 55vw;
-            max-width: 400px;
-            max-height: 550px;
-            font-size: 40vw;
-            font-weight: 800;
-            line-height: 55vw;
+            background: #222222;
+            width: 45%;
+            height: 100%;
+            border-radius: 5px;
+            margin: 0 1%;
+            overflow: hidden;
         }
 
-        /* 横屏优化：旧手机横着放最像时钟 */
-        @media (orientation: landscape) {
-            .card {
-                width: 40vh;
-                height: 55vh;
-                font-size: 40vh;
-                line-height: 55vh;
-            }
+        .number {
+            font-size: 30vw;
+            font-weight: bold;
+            line-height: 1.6; /* 针对 IE 的行高微调 */
+            display: block;
         }
 
-        /* 中间横线效果 */
-        .card::after {
-            content: '';
+        /* 模拟 Fliqlo 的中间缝隙 */
+        .line {
             position: absolute;
             top: 50%;
             left: 0;
             width: 100%;
             height: 2px;
-            background: rgba(0,0,0,0.6);
+            background: #000;
             z-index: 10;
-            margin-top: -1px;
         }
 
-        /* 上半部分和下半部分 */
-        .half {
-            position: absolute;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            overflow: hidden;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-        }
-
-        .top {
-            top: 0;
-            background: #252525;
-            border-radius: 8px 8px 0 0;
-            border-bottom: 1px solid rgba(0,0,0,0.3);
-        }
-
-        .bottom {
-            bottom: 0;
-            background: #252525;
-            border-radius: 0 0 8px 8px;
-            line-height: 0; /* 让文字底部对齐 */
-        }
-
-        /* 简单的点击全屏提示 */
         #hint {
             position: fixed;
-            bottom: 10px;
-            font-size: 12px;
-            color: #444;
+            bottom: 5px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-size: 10px;
         }
     </style>
 </head>
 <body>
 
-    <div class="clock-container" id="clock">
-        <div class="card" id="hour-card">
-            <div class="half top" id="h-top">00</div>
-            <div class="half bottom" id="h-bottom">00</div>
+    <div class="wrapper">
+        <div class="card">
+            <div class="line"></div>
+            <span class="number" id="h">00</span>
         </div>
-        <div class="card" id="min-card">
-            <div class="half top" id="m-top">00</div>
-            <div class="half bottom" id="m-bottom">00</div>
+        <div class="card">
+            <div class="line"></div>
+            <span class="number" id="m">00</span>
         </div>
     </div>
 
-    <div id="hint">点击屏幕尝试全屏</div>
+    <div id="hint">Lumia 635 兼容模式</div>
 
     <script>
-        function updateTime() {
-            var now = new Date();
-            var h = now.getHours();
-            var m = now.getMinutes();
-
-            // 格式化数字
-            h = h < 10 ? '0' + h : h;
-            m = m < 10 ? '0' + m : m;
-
-            // 更新 DOM
-            document.getElementById('h-top').innerHTML = h;
-            document.getElementById('h-bottom').innerHTML = h;
-            document.getElementById('m-top').innerHTML = m;
-            document.getElementById('m-bottom').innerHTML = m;
+        function update() {
+            var d = new Date();
+            var h = d.getHours();
+            var m = d.getMinutes();
+            if(h < 10) h = '0' + h;
+            if(m < 10) m = '0' + m;
+            
+            // 使用最基础的 innerText 确保兼容
+            document.getElementById('h').innerText = h;
+            document.getElementById('m').innerText = m;
         }
 
-        // 兼容各种旧版全屏 API
-        function requestFullScreen() {
-            var el = document.documentElement;
-            var rfs = el.requestFullScreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-            if (typeof rfs != "undefined" && rfs) {
-                rfs.call(el);
-            }
-            document.getElementById('hint').style.display = 'none';
-        }
-
-        // 监听点击启动全屏
-        document.addEventListener('click', function() {
-            requestFullScreen();
-        });
-
-        // 每一秒检查一次
-        setInterval(updateTime, 1000);
-        updateTime();
+        // IE11 需要先确保 DOM 加载
+        window.onload = function() {
+            setInterval(update, 1000);
+            update();
+        };
     </script>
 </body>
 </html>
