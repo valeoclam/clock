@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Fliqlo Retro</title>
+    <style>
+        /* 基础样式：强制全屏黑色背景 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: #d1d1d1;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 兼容 IE11 的 Flexbox 居中 */
+        body {
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-pack: center;
+            -ms-flex-pack: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -ms-flex-align: center;
+            align-items: center;
+        }
+
+        .clock-container {
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            text-align: center;
+        }
+
+        /* 卡片设计 */
+        .card {
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin: 0 10px;
+            width: 40vw;
+            height: 55vw;
+            max-width: 400px;
+            max-height: 550px;
+            font-size: 40vw;
+            font-weight: 800;
+            line-height: 55vw;
+        }
+
+        /* 横屏优化：旧手机横着放最像时钟 */
+        @media (orientation: landscape) {
+            .card {
+                width: 40vh;
+                height: 55vh;
+                font-size: 40vh;
+                line-height: 55vh;
+            }
+        }
+
+        /* 中间横线效果 */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(0,0,0,0.6);
+            z-index: 10;
+            margin-top: -1px;
+        }
+
+        /* 上半部分和下半部分 */
+        .half {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            overflow: hidden;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+
+        .top {
+            top: 0;
+            background: #252525;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid rgba(0,0,0,0.3);
+        }
+
+        .bottom {
+            bottom: 0;
+            background: #252525;
+            border-radius: 0 0 8px 8px;
+            line-height: 0; /* 让文字底部对齐 */
+        }
+
+        /* 简单的点击全屏提示 */
+        #hint {
+            position: fixed;
+            bottom: 10px;
+            font-size: 12px;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container" id="clock">
+        <div class="card" id="hour-card">
+            <div class="half top" id="h-top">00</div>
+            <div class="half bottom" id="h-bottom">00</div>
+        </div>
+        <div class="card" id="min-card">
+            <div class="half top" id="m-top">00</div>
+            <div class="half bottom" id="m-bottom">00</div>
+        </div>
+    </div>
+
+    <div id="hint">点击屏幕尝试全屏</div>
+
+    <script>
+        function updateTime() {
+            var now = new Date();
+            var h = now.getHours();
+            var m = now.getMinutes();
+
+            // 格式化数字
+            h = h < 10 ? '0' + h : h;
+            m = m < 10 ? '0' + m : m;
+
+            // 更新 DOM
+            document.getElementById('h-top').innerHTML = h;
+            document.getElementById('h-bottom').innerHTML = h;
+            document.getElementById('m-top').innerHTML = m;
+            document.getElementById('m-bottom').innerHTML = m;
+        }
+
+        // 兼容各种旧版全屏 API
+        function requestFullScreen() {
+            var el = document.documentElement;
+            var rfs = el.requestFullScreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (typeof rfs != "undefined" && rfs) {
+                rfs.call(el);
+            }
+            document.getElementById('hint').style.display = 'none';
+        }
+
+        // 监听点击启动全屏
+        document.addEventListener('click', function() {
+            requestFullScreen();
+        });
+
+        // 每一秒检查一次
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>
