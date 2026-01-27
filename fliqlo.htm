@@ -2,105 +2,110 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fliqlo WP</title>
+    <title>Fliqlo Lumia</title>
     <style>
         body, html {
-            background-color: #000000;
-            color: #FFFFFF;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: "Segoe UI", "Helvetica Neue", Sans-Serif;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000000; color: #dcdcdc;
+            overflow: hidden; -ms-touch-action: none;
         }
-
-        /* 放弃 Flexbox，改用绝对定位居中，这是 IE11 最稳的方法 */
-        .wrapper {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 90%;
-            height: 50%;
-            margin-top: -25%; /* 高度的一半 */
-            margin-left: -45%; /* 宽度的一半 */
-            text-align: center;
-        }
-
+        .container { display: table; width: 100%; height: 100%; position: relative; }
+        .clock-wrapper { display: table-cell; vertical-align: middle; text-align: center; }
+        
+        /* 模拟 Fliqlo 的卡片样式 */
         .card {
             display: inline-block;
+            background-color: #1c1c1c; /* 卡片深灰色 */
+            border-radius: 8px;
+            margin: 0 5px;
+            padding: 10px 5px;
             position: relative;
-            background: #222222;
-            width: 45%;
-            height: 100%;
-            border-radius: 5px;
-            margin: 0 1%;
-            overflow: hidden;
+            /* 使用 Impact 模拟 Fliqlo 的粗体 */
+            font-family: "Impact", "Segoe UI Bold", sans-serif;
+            font-size: 38vw; 
+            line-height: 1.1;
+            width: 42vw;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
-        .number {
-            font-size: 30vw;
-            font-weight: bold;
-            line-height: 1.6; /* 针对 IE 的行高微调 */
-            display: block;
-        }
-
-        /* 模拟 Fliqlo 的中间缝隙 */
-        .line {
+        /* 中间的分割线 */
+        .card::after {
+            content: "";
             position: absolute;
             top: 50%;
             left: 0;
             width: 100%;
             height: 2px;
-            background: #000;
+            background: #000; /* 黑色分割线 */
+            margin-top: -1px;
             z-index: 10;
         }
 
-        #hint {
-            position: fixed;
-            bottom: 5px;
-            width: 100%;
-            text-align: center;
-            color: #333;
-            font-size: 10px;
+        @media screen and (orientation: landscape) {
+            .card { font-size: 70vh; width: 42vh; }
         }
+
+        /* 按钮样式保持不变 */
+        .btn {
+            position: absolute; width: 55px; height: 55px;
+            line-height: 52px; background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5); color: #fff; 
+            border-radius: 50%; text-align: center; z-index: 100;
+            display: none; -ms-user-select: none; font-family: "Segoe UI", sans-serif;
+        }
+        #btn-minus { bottom: 10%; left: 5%; font-size: 35px; }
+        #btn-plus { bottom: 10%; right: 5%; font-size: 35px; }
     </style>
 </head>
-<body>
+<body onclick="showControls()">
 
-    <div class="wrapper">
-        <div class="card">
-            <div class="line"></div>
-            <span class="number" id="h">00</span>
-        </div>
-        <div class="card">
-            <div class="line"></div>
-            <span class="number" id="m">00</span>
+    <div class="container">
+        <div id="btn-minus" class="btn" onclick="changeSize(-2); event.stopPropagation();">-</div>
+        <div id="btn-plus" class="btn" onclick="changeSize(2); event.stopPropagation();">+</div>
+        
+        <div class="clock-wrapper">
+            <div class="card" id="h-card">00</div>
+            <div class="card" id="m-card">00</div>
         </div>
     </div>
 
-    <div id="hint">Lumia 635 兼容模式</div>
+    <script type="text/javascript">
+        var hEl = document.getElementById("h-card");
+        var mEl = document.getElementById("m-card");
+        var btns = document.getElementsByClassName("btn");
+        var currentSize = 38;
+        var timer = null;
 
-    <script>
-        function update() {
-            var d = new Date();
-            var h = d.getHours();
-            var m = d.getMinutes();
-            if(h < 10) h = '0' + h;
-            if(m < 10) m = '0' + m;
-            
-            // 使用最基础的 innerText 确保兼容
-            document.getElementById('h').innerText = h;
-            document.getElementById('m').innerText = m;
+        function updateTime() {
+            var now = new Date();
+            var h = now.getHours(), m = now.getMinutes();
+            hEl.innerText = (h < 10 ? "0"+h : h);
+            mEl.innerText = (m < 10 ? "0"+m : m);
         }
 
-        // IE11 需要先确保 DOM 加载
-        window.onload = function() {
-            setInterval(update, 1000);
-            update();
-        };
+        function showControls() {
+            for(var i=0; i<btns.length; i++) btns[i].style.display = "block";
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(function() {
+                for(var i=0; i<btns.length; i++) btns[i].style.display = "none";
+            }, 5000);
+        }
+
+        function changeSize(delta) {
+            currentSize += delta;
+            if (currentSize < 10) currentSize = 10;
+            var unit = (window.innerWidth > window.innerHeight) ? "vh" : "vw";
+            hEl.style.fontSize = currentSize + unit;
+            mEl.style.fontSize = currentSize + unit;
+            hEl.style.width = (currentSize + 4) + unit;
+            mEl.style.width = (currentSize + 4) + unit;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        window.onresize = function() { updateTime(); };
     </script>
 </body>
 </html>
